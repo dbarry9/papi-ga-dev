@@ -1,0 +1,14 @@
+diff --git a/src/components/intel_gpu/internal/src/GPUMetricHandler.cpp b/src/components/intel_gpu/internal/src/GPUMetricHandler.cpp
+index e7667db61..fe196816e 100644
+--- a/src/components/intel_gpu/internal/src/GPUMetricHandler.cpp
++++ b/src/components/intel_gpu/internal/src/GPUMetricHandler.cpp
+@@ -593,6 +593,9 @@ int GPUMetricHandler::InitMetricDevices(DeviceInfo **deviceInfo,  uint32_t *numD
+ 	if (status == ZE_RESULT_SUCCESS) {
+ 		status = zeDriverGetFunc(&driverCount, nullptr);
+ 	}
++    else {
++        cout << "Hit bad case: no driver has been found!" << endl;
++    }
+ 	if (status != ZE_RESULT_SUCCESS || driverCount == 0) {
+ 		g_lock.unlock();
+ 		return retError;

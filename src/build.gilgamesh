@@ -1,0 +1,13 @@
+#!/bin/bash
+
+INSTDIR=${PAPI_DIR}
+
+mkdir -p ${INSTDIR}
+rm -rf ${INSTDIR}/*
+
+make clobber
+./configure --prefix=${INSTDIR} --with-components="cuda"
+
+#make -j4
+make
+make install

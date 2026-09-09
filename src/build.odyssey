@@ -1,0 +1,35 @@
+#!/bin/bash
+
+INSTDIR=${PAPI_DIR}
+
+mkdir -p ${INSTDIR}
+rm -rf ${INSTDIR}/*
+
+make clobber
+
+#./configure --prefix=${INSTDIR} --with-components=""
+#./configure --prefix=${INSTDIR} --with-components="rocm     rocp_sdk"
+#./configure --prefix=${INSTDIR} --with-components="rocm_smi rocp_sdk"
+#./configure --prefix=${INSTDIR} --with-components="amd_smi  rocp_sdk"
+#./configure --prefix=${INSTDIR} --with-components="rocm     rocm_smi"
+#./configure --prefix=${INSTDIR} --with-components="rocm     amd_smi"
+#./configure --prefix=${INSTDIR} --with-components="rocm_smi amd_smi"
+
+#./configure --prefix=${INSTDIR} --with-components="rocm_smi rocm rocp_sdk amd_smi"
+#./configure --prefix=${INSTDIR} --with-components="amd_smi"
+#./configure --prefix=${INSTDIR} --with-components="rocm_smi rocm rocp_sdk"
+
+#./configure --prefix=${INSTDIR} --with-components="rocp_sdk amd_smi"
+#./configure --prefix=${INSTDIR} --with-components="rocm_smi rocm"
+#./configure --prefix=${INSTDIR} --with-components="rocp_sdk"
+
+#./configure --prefix=${INSTDIR}
+#./configure --prefix=${INSTDIR} --disable-sysdetect
+#./configure --prefix=${INSTDIR} --enable-sysdetect=yes
+#./configure --prefix=${INSTDIR} --enable-sysdetect=no
+
+./configure --prefix=${INSTDIR} --with-components="rocp_sdk"
+
+#make -j4
+make
+make install

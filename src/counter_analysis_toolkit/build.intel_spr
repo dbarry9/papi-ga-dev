@@ -1,0 +1,6 @@
+#!/bin/bash
+
+make realclean
+
+## Intel Sapphire Rapids
+make ARCH=X86 PAPIDIR=${PAPI_DIR}

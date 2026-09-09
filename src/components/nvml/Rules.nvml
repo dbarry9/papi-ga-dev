@@ -1,0 +1,15 @@
+# Set default if the root environment variable is not already set.
+# Note PAPI_CUDA_ROOT is an environment variable that must be set.
+# It is the ONLY environment variable that must be set, all other
+# settings are optional.
+PAPI_CUDA_ROOT ?= /opt/cuda
+
+COMPSRCS += components/nvml/linux-nvml.c
+COMPOBJS += linux-nvml.o
+# CFLAGS specifies compile flags; need include files here
+CFLAGS += -I$(PAPI_CUDA_ROOT)/include -g
+LDFLAGS += $(LDL) -g
+
+linux-nvml.o: components/nvml/linux-nvml.c $(HEADERS)
+	$(CC) $(LIBCFLAGS) $(OPTFLAGS) -c components/nvml/linux-nvml.c -o linux-nvml.o
+

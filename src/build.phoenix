@@ -1,0 +1,19 @@
+#!/bin/bash
+
+INSTDIR=${PAPI_DIR}
+
+mkdir -p ${INSTDIR}
+rm -rf ${INSTDIR}/*
+
+make clobber
+
+#./configure --prefix=${INSTDIR} --with-components=""
+#./configure --prefix=${INSTDIR} --with-components="" --enable-sysdetect=yes
+#./configure --prefix=${INSTDIR} --with-components="" --disable-sysdetect
+#./configure --prefix=${INSTDIR} --with-components="" --enable-sysdetect=no
+#./configure --prefix=${INSTDIR} --with-components="" --enable-sysdetect=no --disable-cpu
+
+./configure --prefix=${INSTDIR} --with-components="" --enable-warnings --with-debug=yes
+
+make
+#make install

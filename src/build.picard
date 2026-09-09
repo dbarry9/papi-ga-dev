@@ -1,0 +1,13 @@
+#!/bin/bash
+
+INSTDIR=${PAPI_DIR}
+
+mkdir -p ${INSTDIR}
+rm -rf ${INSTDIR}/*
+
+make clobber
+./configure --prefix=${INSTDIR} --with-components="topdown"
+#./configure --prefix=${INSTDIR} --with-components="powercap"
+
+make # -j8
+make install

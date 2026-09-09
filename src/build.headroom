@@ -1,0 +1,18 @@
+#!/bin/bash
+
+source env.headroom
+
+INSTDIR=${PAPI_DIR}
+
+mkdir -p ${INSTDIR}
+rm -rf ${INSTDIR}/*
+
+make clobber
+#./configure --prefix=${INSTDIR} --with-components="intel_gpu"
+#./configure --prefix=${INSTDIR} --with-components="intel_gpu" --enable-warnings #--with-debug=yes
+#./configure --prefix=${INSTDIR} --with-components="" --enable-warnings
+./configure --prefix=${INSTDIR} --with-components="rapl powercap"
+#./configure --prefix=${INSTDIR} --with-components="topdown"
+
+make
+make install

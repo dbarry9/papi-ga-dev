@@ -1,0 +1,12 @@
+#!/bin/bash
+
+OUT=./master
+mkdir -p ${OUT}
+#OUTCOMPTESTS=${OUT}-comptests
+#mkdir -p ${OUTCOMPTESTS}
+
+${PAPI}/bin/papi_avail           &> ${OUT}/out.avail
+${PAPI}/bin/papi_native_avail    &> ${OUT}/out.native
+${PAPI}/bin/papi_hardware_avail  &> ${OUT}/out.hw
+${PAPI}/bin/papi_mem_info        &> ${OUT}/out.mem
+${PAPI}/bin/papi_component_avail &> ${OUT}/out.comp

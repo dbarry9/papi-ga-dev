@@ -1,0 +1,21 @@
+#!/bin/bash
+
+INSTDIR=${PAPI}
+
+mkdir -p ${INSTDIR}
+rm -rf ${INSTDIR}/*
+
+make clobber
+
+#./configure --prefix=${INSTDIR} --with-components="cuda nvml" --with-debug=yes
+#./configure --prefix=${INSTDIR} --with-components="cuda" --enable-warnings --with-debug=yes
+#./configure --prefix=${INSTDIR} --with-components="cuda" --with-debug=yes
+#./configure --prefix=${INSTDIR} --with-components="nvml" --enable-warnings
+#./configure --prefix=${INSTDIR} --with-components="nvml"
+#./configure --prefix=${INSTDIR} --with-components=""
+
+./configure --prefix=${INSTDIR} --with-components="cuda"
+
+#exit
+make -j16
+make install

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#OUT=./picard-master
+OUT=./picard-feature
+mkdir -p ${OUT}/comptests
+
+${PAPI}/bin/papi_avail           &> ${OUT}/out.avail
+${PAPI}/bin/papi_native_avail    &> ${OUT}/out.native
+${PAPI}/bin/papi_component_avail &> ${OUT}/out.comp
+${PAPI}/bin/papi_hardware_avail  &> ${OUT}/out.hw
+${PAPI}/bin/papi_mem_info        &> ${OUT}/out.mem
+${PAPI}/bin/papi_command_line "L2_RQSTS:HIT" "ICACHE_TAG:STALLS" "ICACHE_TAG:STALLS_IN_USE" "ICACHE_TAG:STALLS_ISB" &> ${OUT}/out.cmdline
+
+
+
+exit
+
+./components/intel_gpu/tests/gpu_metric_read &> ${OUT}/comptests/intelgpu.metric_read
+echo "1 done"
+./components/intel_gpu/tests/gpu_metric_list &> ${OUT}/comptests/intelgpu.metric_list
+echo "2 done"
+./components/intel_gpu/tests/gpu_query_gemm  &> ${OUT}/comptests/intelgpu.query_gemm
+echo "3 done"
+./components/intel_gpu/tests/gpu_gemm        &> ${OUT}/comptests/intelgpu.gemm
+echo "4 done"

@@ -1,0 +1,51 @@
+#!/bin/bash
+
+OUT=./feature/
+mkdir -p ${OUT}/comptests
+
+${PAPI}/bin/papi_avail           &> ${OUT}/out.avail
+${PAPI}/bin/papi_native_avail    &> ${OUT}/out.native
+${PAPI}/bin/papi_hardware_avail  &> ${OUT}/out.hw
+${PAPI}/bin/papi_mem_info        &> ${OUT}/out.mem
+${PAPI}/bin/papi_component_avail &> ${OUT}/out.comp
+
+exit
+
+time bash components/cuda/tests/runtest.sh &> ${OUT}/comptests/cuda.all
+
+exit
+
+./components/cuda/tests/HelloWorld                   "cuda:::dram__bytes"  &> ${OUT}/comptests/cuda.hello
+./components/cuda/tests/HelloWorld_noCuCtx           "cuda:::dram__bytes"  &> ${OUT}/comptests/cuda.hello_nocu
+./components/cuda/tests/concurrent_profiling         "cuda:::dram__bytes"  &> ${OUT}/comptests/cuda.prof
+./components/cuda/tests/concurrent_profiling_noCuCtx "cuda:::dram__bytes"  &> ${OUT}/comptests/cuda.prof_nocu
+./components/cuda/tests/cudaOpenMP                   "cuda:::dram__bytes"  &> ${OUT}/comptests/cuda.omp
+./components/cuda/tests/cudaOpenMP_noCuCtx           "cuda:::dram__bytes"  &> ${OUT}/comptests/cuda.omp_nocu
+./components/cuda/tests/pthreads                     "cuda:::dram__bytes"  &> ${OUT}/comptests/cuda.pthreads
+./components/cuda/tests/pthreads_noCuCtx             "cuda:::dram__bytes"  &> ${OUT}/comptests/cuda.pthreads_nocu
+./components/cuda/tests/simpleMultiGPU               "cuda:::dram__bytes"  &> ${OUT}/comptests/cuda.multigpu
+./components/cuda/tests/simpleMultiGPU_noCuCtx       "cuda:::dram__bytes"  &> ${OUT}/comptests/cuda.multigpu_nocu
+./components/cuda/tests/test_2thr_1gpu_not_allowed   "cuda:::dram__bytes"  &> ${OUT}/comptests/cuda.notallowed
+./components/cuda/tests/test_multi_read_and_reset    "cuda:::dram__bytes" &> ${OUT}/comptests/cuda.multiread
+./components/cuda/tests/test_multipass_event_fail    "cuda:::dram__bytes" &> ${OUT}/comptests/cuda.multipass
+
+exit
+
+export LD_LIBRARY_PATH=/home/users/dbarry/src/papi-treece/src/components/sde/tests/lib:${LD_LIBRARY_PATH}
+./components/sde/tests/Minimal_Test                &> ${OUT}/comptests/sde.minimal
+./components/sde/tests/Minimal_Test++              &> ${OUT}/comptests/sde.minimal++
+./components/sde/tests/Overflow_Test               &> ${OUT}/comptests/sde.overflow
+./components/sde/tests/Simple_Test                 &> ${OUT}/comptests/sde.simple
+./components/sde/tests/Simple2_Test                &> ${OUT}/comptests/sde.simple2
+./components/sde/tests/Simple2_NoPAPI_Test         &> ${OUT}/comptests/sde.simple2_nopapi
+./components/sde/tests/Simple2_Test++              &> ${OUT}/comptests/sde.simple2++
+./components/sde/tests/Recorder_Test               &> ${OUT}/comptests/sde.recorder
+./components/sde/tests/Recorder_Test++             &> ${OUT}/comptests/sde.recorder++
+./components/sde/tests/Created_Counter_Test        &> ${OUT}/comptests/sde.created
+./components/sde/tests/Created_Counter_Test++      &> ${OUT}/comptests/sde.created++
+./components/sde/tests/Counting_Set_Simple_Test    &> ${OUT}/comptests/sde.setsimple
+./components/sde/tests/Counting_Set_Simple_Test++  &> ${OUT}/comptests/sde.setsimple++
+./components/sde/tests/Counting_Set_MemLeak_Test++ &> ${OUT}/comptests/sde.memleak++
+./components/sde/tests/Counting_Set_MemLeak_Test   &> ${OUT}/comptests/sde.memleak
+./components/sde/tests/Overflow_Static_Test        &> ${OUT}/comptests/sde.overflow_static
+./components/sde/tests/sde_test_f08                &> ${OUT}/comptests/sde.f08
