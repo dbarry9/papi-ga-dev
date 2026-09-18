@@ -26,12 +26,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <dirent.h>
 #include <perfmon/pfmlib_perf_event.h>
 
 #include "pfmlib_priv.h"
 #include "pfmlib_perf_event_priv.h"
 
-#define PERF_PROC_FILE "/proc/sys/kernel/perf_event_paranoid"
+#define PERF_PROC_FILE	"/proc/sys/kernel/perf_event_paranoid"
 
 #ifdef min
 #undef min
@@ -75,6 +76,51 @@ static const pfmlib_attr_desc_t perf_event_ext_mods[]={
 	PFM_ATTR_NULL /* end-marker to avoid exporting number of entries */
 };
 
+typedef struct sysfs_pmu_entry {
+	char *name;
+	int type;
+	int flags;
+} sysfs_pmu_entry_t;
+
+static sysfs_pmu_entry_t *sysfs_pmus;	/* cache os pmus available in sysfs */
+static int sysfs_npmus;			/* number of entries in sysfs_pmus */
+
+static int
+pfmlib_check_no_mods(pfmlib_event_desc_t *e)
+{
+	pfmlib_event_attr_info_t *a;
+	int numasks = 0, no_mods = 0;
+	int i;
+
+	/*
+	 * scan umasks used with the event
+	 * for support_no_attr values
+	 */
+	for (i = 0; i < e->nattrs; i++) {
+		a = attr(e, i);
+
+		if (a->ctrl != PFM_ATTR_CTRL_PMU)
+			continue;
+
+		if (a->type != PFM_ATTR_UMASK)
+			continue;
+
+		numasks++;
+
+		if (a->support_no_mods)
+			no_mods++;
+	}
+
+	/*
+	 * handle the case where some umasks have no_attr
+	 * and not others. In that case no_attr has priority
+	 */
+	if (no_mods && numasks != no_mods) {
+		DPRINT("event %s with umasks with and without no_mods (%d) attribute, forcing no_mods\n", e->fstr, no_mods);
+	}
+
+	return no_mods;
+}
 static int
 pfmlib_perf_event_encode(void *this, const char *str, int dfl_plm, void *data)
 {
@@ -90,6 +136,7 @@ pfmlib_perf_event_encode(void *this, const char *str, int dfl_plm, void *data)
 	int has_plm = 0, has_vmx_plm = 0;
 	int i, plm = 0, ret, vmx_plm = 0;
 	int cpu = -1, pinned = 0;
+	int no_mods;
 
 	sz = pfmlib_check_struct(uarg, uarg->size, PFM_PERF_ENCODE_ABI0, sz);
 	if (!sz)
@@ -153,6 +200,8 @@ pfmlib_perf_event_encode(void *this, const char *str, int dfl_plm, void *data)
         if (ret != PFM_SUCCESS)
 		goto done;
 
+	no_mods = pfmlib_check_no_mods(&e);
+
 	/*
 	 * process perf_event attributes
 	 */
@@ -164,6 +213,15 @@ pfmlib_perf_event_encode(void *this, const char *str, int dfl_plm, void *data)
 			continue;
 
 		ival = e.attrs[i].ival;
+
+		/*
+		 * if event or umasks do not support any modifiers,
+		 * then reject
+		 */
+		if (no_mods && ival && a->idx != PERF_ATTR_PIN) {
+			ret = PFM_ERR_ATTR_VAL;
+			goto done;
+		}
 
 		switch(a->idx) {
 		case PERF_ATTR_U:
@@ -289,9 +347,10 @@ pfmlib_perf_event_encode(void *this, const char *str, int dfl_plm, void *data)
 
 	/*
 	 * fstr not requested, stop here
+	 * or no_mods set
 	 */
 	ret = PFM_SUCCESS;
-	if (!arg.fstr) {
+	if (!arg.fstr || no_mods) {
 		memcpy(uarg, &arg, sz);
 		goto done;
 	}
@@ -423,11 +482,196 @@ pfm_get_perf_event_encoding(const char *str, int dfl_plm, struct perf_event_attr
 	return PFM_SUCCESS;
 }
 
+/*
+ * generic perf encoding helper
+ */
+static int
+pfmlib_perf_find_pmu_type_by_name(const char *perf_name, int *type)
+{
+	char filename[PATH_MAX];
+	FILE *fp;
+	int ret, tmp;
+	int retval = PFM_ERR_NOTFOUND;
+
+	if (!(perf_name && type))
+		return PFM_ERR_NOTSUPP;
+
+	snprintf(filename, PATH_MAX, "%s/%s/type", SYSFS_PMU_DEVICES_DIR, perf_name);
+
+	fp = fopen(filename, "r");
+	if (!fp)
+		return PFM_ERR_NOTSUPP;
+
+	ret = fscanf(fp, "%d", &tmp);
+
+	fclose(fp);
+
+	if (ret == 1) {
+		*type = tmp;
+		retval = PFM_SUCCESS;
+	}
+
+	return retval;
+}
+
+/*
+ * identify perf_events subdirectory
+ * via the presence of the mux interval config file
+ * Return:
+ * 1 : directory is a perf_events directory (match)
+ * 0 : directory is not a perf_events directory (match)
+ */
+static int
+filter_pmu_dir(const struct dirent *d)
+{
+	char fn[PATH_MAX];
+
+	if (d->d_name[0] == '.')
+		return 0;
+
+	if (d->d_type != DT_DIR && d->d_type != DT_LNK)
+		return 0;
+
+	snprintf(fn, PATH_MAX, "%s/%s/perf_event_mux_interval_ms", SYSFS_PMU_DEVICES_DIR, d->d_name);
+
+	return !access(fn, F_OK);
+}
+
+/*
+ * build a cache of PMUs available via sysfs
+ * to speedup lookup later on
+ */
+int
+pfm_init_sysfs_pmu_cache(void)
+{
+	struct dirent **dir_list = NULL;
+	int n, i, j, ret;
+	int type;
+
+	/* only initialize once (perf vs. perf_ext) */
+	if (sysfs_pmus)
+		return PFM_SUCCESS;
+
+	n = scandir(SYSFS_PMU_DEVICES_DIR, &dir_list, filter_pmu_dir, NULL);
+	if (n == 0) {
+		free(dir_list);
+		return PFM_ERR_NOTSUPP;
+	}
+
+	sysfs_pmus = (sysfs_pmu_entry_t *)malloc(n * sizeof(sysfs_pmu_entry_t));
+	if (!sysfs_pmus)
+		return PFM_ERR_NOMEM;
+
+	/*
+	 * cache perf_event PMU name and type (attr.type)
+	 */
+	for (i = j = 0; i < n; i++) {
+		sysfs_pmus[j].name = dir_list[i]->d_name;
+
+		ret = pfmlib_perf_find_pmu_type_by_name(sysfs_pmus[i].name, &type);
+		/* skip PMU if cannot get the type */
+		if (ret != PFM_SUCCESS) {
+			DPRINT("sysfs_pmus[%d]=%s failed to get PMU type from sysfs\n", j, sysfs_pmus[i].name);
+			continue;
+		}
+
+		sysfs_pmus[j].type = type;
+
+		DPRINT("sysf_pmus[%d]=%s type=%d\n", j, sysfs_pmus[i].name, sysfs_pmus[i].type);
+
+		j++;
+	}
+
+	sysfs_npmus = j;
+
+	free(dir_list);
+
+	return PFM_SUCCESS;
+}
+
 static int
 pfm_perf_event_os_detect(void *this)
 {
-	int ret = access(PERF_PROC_FILE, F_OK);
-	return ret ? PFM_ERR_NOTSUPP : PFM_SUCCESS;
+	if (access(PERF_PROC_FILE, F_OK))
+		return PFM_ERR_NOTSUPP;
+
+	return pfm_init_sysfs_pmu_cache();
+}
+
+static int
+pfmlib_perf_find_pmu_type(char *pmu_name, int *type)
+{
+	int i;
+
+	if (!sysfs_pmus)
+		return PFM_ERR_NOTFOUND;
+
+	for (i = 0; i < sysfs_npmus; i++) {
+		/* for now use exact match, add regexp later */
+		if (!strcmp(pmu_name, sysfs_pmus[i].name)) {
+			*type = sysfs_pmus[i].type;
+			return PFM_SUCCESS;
+		}
+	}
+	DPRINT("perf_find_pmu_type: cannot find PMU %s\n", pmu_name);
+	return PFM_ERR_NOTFOUND;
+}
+
+/*
+ * generic perf encoding helper
+ */
+int
+pfm_perf_find_pmu_type(void *this, int *type)
+{
+	pfmlib_pmu_t *pmu = this;
+	char *p, *s, *q;
+	int ret;
+
+
+	/*
+	 * if no perf_name specified, then the best
+	 * option is to use TYPE_RAW, i.e., the core PMU
+	 * which the caller is running on when invoking
+	 * perf_event_open()
+	 */
+	if (!pmu->perf_name) {
+		*type = PERF_TYPE_RAW;
+		DPRINT("No perf_name for %s, defaulting to TYPE_RAW\n", pmu->name);
+		return PFM_SUCCESS;
+	}
+
+	/*
+	 * perf_name may be a comma separated list of PMU names
+	 * so duplicate to split the string into PMU keywords
+	 */
+	s = q = strdup(pmu->perf_name);
+	if (!s) {
+		DPRINT("cannot dup perf_name for %s\n", pmu->perf_name);
+		return PFM_ERR_NOTSUPP;
+	}
+
+	ret = PFM_ERR_NOTFOUND;
+
+	while ((p = strchr(s, ','))) {
+
+		*p = '\0';
+
+		/* stop at first match */
+		ret = pfmlib_perf_find_pmu_type(s, type);
+		if (ret  == PFM_SUCCESS)
+			break;
+		s = p + 1;
+	}
+	/* only or last element of perf_name */
+	if (ret == PFM_ERR_NOTFOUND)
+		ret = pfmlib_perf_find_pmu_type(s, type);
+
+	free(q);
+
+	if (ret != PFM_SUCCESS) {
+		DPRINT("cannot find perf_events PMU type for %s perf_name=%s using PERF_TYPE_RAW\n", pmu->name, pmu->perf_name);
+	}
+	return ret;
 }
 
 pfmlib_os_t pfmlib_os_perf={

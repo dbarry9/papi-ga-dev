@@ -80,7 +80,7 @@ static int
 _sysdetect_init_component( int cidx )
 {
 
-    SUBDBG( "_sysdetect_init_component..." );
+    SUBDBG( "_sysdetect_init_component...\n" );
 
     /* Export the component id */
     _sysdetect_vector.cmp_info.CmpIdx = cidx;
@@ -99,7 +99,7 @@ static int
 _sysdetect_shutdown_component( void )
 {
 
-    SUBDBG( "_sysdetect_shutdown_component..." );
+    SUBDBG( "_sysdetect_shutdown_component...\n" );
 
     cleanup_dev_info( );
 
@@ -454,7 +454,11 @@ get_num_threads_per_numa( _sysdetect_cpu_info_t *cpu_info )
 
     int threads = cpu_info->threads * cpu_info->cores * cpu_info->sockets;
     for (k = 0; k < threads; ++k) {
-        cpu_info->num_threads_per_numa[cpu_info->numa_affinity[k]]++;
+        int tmp = cpu_info->numa_affinity[k];
+        // If gaps exist in the core numbering, the numa_affinity entries
+        // for the skipped core ids will be negative.
+        if( tmp >= 0 )
+            cpu_info->num_threads_per_numa[cpu_info->numa_affinity[k]]++;
     }
 
     initialized = 1;
@@ -465,11 +469,19 @@ papi_vector_t _sysdetect_vector = {
     .cmp_info = {
                  .name = "sysdetect",
                  .short_name = "sysdetect",
-                 .description = "System info detection component",
+                 .description = "Query system information through papi_hardware_avail or using the PAPI API (see the source files under sysdetect/tests)",
                  .version = "1.0",
                  .support_version = "n/a",
                  .kernel_version = "n/a",
                 },
+
+    /* Sizes of framework-opaque component-private structures */
+    .size = {
+        .context = 1, /* unused */
+        .control_state = 1, /* unused */
+        .reg_value = 1, /* unused */
+        .reg_alloc = 1, /* unused */
+    },
 
     /* Used for general PAPI interactions */
     .init_component = _sysdetect_init_component,

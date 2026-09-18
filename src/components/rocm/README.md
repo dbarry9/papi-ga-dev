@@ -4,10 +4,10 @@ The ROCM component exposes numerous performance events on AMD GPUs.
 The component is an adapter to the ROCm profiling library (ROC-profiler) which is included in a standard ROCM release.
 
 
-* [Enabling the ROCM Component](#markdown-header-enabling-the-rocm-component)
-* [Environment Variables](#markdown-header-environment-variables)
-* [Known Limitations](#markdown-header-known-limitations)
-* [FAQ](#markdown-header-faq)
+* [Enabling the ROCM Component](#enabling-the-rocm-component)
+* [Environment Variables](#environment-variables)
+* [Known Limitations](#known-limitations)
+* [FAQ](#faq)
 ***
 ## Enabling the ROCM Component
 
@@ -75,6 +75,14 @@ setting the ROCP\_TOOL\_LIB to the PAPI library as follows:
 
 ## Known Limitations
 
+* The `rocm` component is deprecated starting at the AMD Instinct MI300A and will continue to be for any future AMD device releases.
+  Please instead use the [`rocp_sdk`](https://github.com/icl-utk-edu/papi/blob/master/src/components/rocp_sdk/README.md) component.
+
+* If the `rocm` and `rocp_sdk` components are both configured, then `rocm` will be built for ROCm versions < 6.3.2.
+
+* For ROCm >= 6.2.0, the environment variable `AQLPROFILE_READ_API` should be set to 0 for intercept mode and 1 (or unset) for sampling mode.
+  Otherwise, counter values in intercept mode will return 0. See PAPI Issue #457 for more details.
+
 * PAPI may read zeros for many events if rocprofiler environment variables are
   not exported and HIP functions are executed by the user before the user
   executes PAPI\_library\_init().
@@ -105,12 +113,12 @@ setting the ROCP\_TOOL\_LIB to the PAPI library as follows:
 ***
 ## FAQ
 
-1. [Unusual installations](#markdown-header-unusual-installations)
+1. [Unusual installations](#unusual-installations)
 
 ## Unusual installations
 For the ROCM component to be operational, it must find the dynamic libraries `libhsa-runtime64.so` and `librocprofiler64.so`. These are normally found in the above standard directories. If these libraries are not found (or are not functional) then the component will be listed as "disabled" with a reason explaining the problem. If libraries were not found, then they are not in the expected places.
 
-2. [Device isolation](#markdown-device-isolation)
+2. [Device isolation](#device-isolation)
 
 ## Device isolation
 Compute clusters resource managers can isolate GPU devices, on compute nodes,
@@ -134,4 +142,4 @@ of the device should be used for this mapping (see hipDeviceGetUuid and
 HSA\_AMD\_AGENT\_INFO\_UUID).
 
 The AMD isolation mechanism is described in more details here:
-https://rocm.docs.amd.com/en/latest/understand/gpu_isolation.html
+https://rocmdocs.amd.com/en/latest/conceptual/gpu-isolation.html

@@ -28,7 +28,7 @@
 
 #include "papi.h"
 
-#include "print_header.h"
+#include "utils_helper.h"
 
 #define EVT_LINE 80
 
@@ -85,7 +85,7 @@ main( int argc, char **argv )
 	const PAPI_hw_info_t *hwinfo = NULL;
 	const PAPI_component_info_t* cmpinfo;
 	command_flags_t flags;
-	int numcmp, cid;
+	int numcmp, cid, is_utility_cmp = 0;
 
 	/* Initialize before parsing the input arguments */
 	retval = PAPI_library_init( PAPI_VER_CURRENT );
@@ -116,19 +116,32 @@ main( int argc, char **argv )
 	for ( cid = 0; cid < numcmp; cid++ ) {
 	  cmpinfo = PAPI_get_component_info( cid );
 
-	  printf( "Name:   %-23s %s\n", cmpinfo->name ,cmpinfo->description);
+	  if (strcasecmp(cmpinfo->name, "No Components Configured. ") != 0) {
+	      printf( "Name:   %-23s %s\n", cmpinfo->name ,cmpinfo->description);
+	  }
+	  else {
+	      printf( "Name:   %-23s\n", cmpinfo->name);
+	      continue;
+	  }
 
-      if (cmpinfo->disabled == PAPI_EDELAY_INIT) {
-          force_cmp_init(cid);
-      }
+	  if (cmpinfo->disabled == PAPI_EDELAY_INIT) {
+	      force_cmp_init(cid);
+	  }
 	  if (cmpinfo->disabled) {
 	    printf("   \\-> Disabled: %s\n",cmpinfo->disabled_reason);
 	  }
 
+	  if (cmpinfo->partially_disabled) {
+	      printf("   \\-> Partially disabled: %s\n", cmpinfo->partially_disabled_reason);
+	  }
+
 	  if ( flags.details ) {
 		printf( "        %-23s Version:\t\t\t%s\n", " ", cmpinfo->version );
-		printf( "        %-23s Number of native events:\t%d\n", " ", cmpinfo->num_native_events);
-		printf( "        %-23s Number of preset events:\t%d\n", " ", cmpinfo->num_preset_events);
+		is_utility_cmp = check_for_utility_components(cmpinfo->name);
+		if (!is_utility_cmp) {
+			printf( "        %-23s Number of native events:\t%d\n", " ", cmpinfo->num_native_events);
+			printf( "        %-23s Number of preset events:\t%d\n", " ", cmpinfo->num_preset_events);
+		}
 		printf("\n");
 	  }
 	}
@@ -140,9 +153,18 @@ main( int argc, char **argv )
 	  cmpinfo = PAPI_get_component_info( cid );
 	  if (cmpinfo->disabled) continue;
 
-	  printf( "Name:   %-23s %s\n", cmpinfo->name ,cmpinfo->description);
-	  printf( "        %-23s Native: %d, Preset: %d, Counters: %d\n",
-		  " ", cmpinfo->num_native_events, cmpinfo->num_preset_events, cmpinfo->num_cntrs);
+	  if (strcasecmp(cmpinfo->name, "No Components Configured. ") != 0) {
+		printf( "Name:   %-23s %s\n", cmpinfo->name ,cmpinfo->description);
+		is_utility_cmp = check_for_utility_components(cmpinfo->name);
+		if (!is_utility_cmp) {
+			printf( "        %-23s Native: %d, Preset: %d, Counters: %d\n",
+				" ", cmpinfo->num_native_events, cmpinfo->num_preset_events, cmpinfo->num_cntrs);
+		}
+	  }
+	  else {
+		printf( "Name:   %-23s\n", cmpinfo->name);
+		continue;
+	  }
 
      int pmus=0;
      for (i=0; i<PAPI_PMU_MAX; i++) {                          // Count pmus to print.
@@ -178,7 +200,10 @@ main( int argc, char **argv )
 
 	  if ( flags.details ) {
 		printf( "        %-23s Version:\t\t\t%s\n", " ", cmpinfo->version );
-		printf( "        %-23s Fast counter read:\t\t%d\n", " ", cmpinfo->fast_counter_read);
+		is_utility_cmp = check_for_utility_components(cmpinfo->name);
+		if (!is_utility_cmp) {
+			printf( "        %-23s Fast counter read:\t\t%d\n", " ", cmpinfo->fast_counter_read);
+		}
 		printf("\n");
 	  }
 	}

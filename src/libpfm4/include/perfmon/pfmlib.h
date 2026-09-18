@@ -2,8 +2,9 @@
  * Copyright (c) 2009 Google, Inc
  * Contributed by Stephane Eranian <eranian@gmail.com>
  *
- * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES.
+ * Copyright (c) 2022-2026, NVIDIA CORPORATION & AFFILIATES.
  * Contributed by John Linford <jlinford@nvidia.com>
+ * Contributed by Thomas Makin <tmakin@nvidia.com>
  *
  * Based on:
  * Copyright (c) 2001-2007 Hewlett-Packard Development Company, L.P.
@@ -727,6 +728,121 @@ typedef enum {
 	PFM_PMU_INTEL_ICX_UNC_M2PCIE0,	/* Intel Icelake-X M2PCIE0 uncore */
 	PFM_PMU_INTEL_ICX_UNC_M2PCIE1,	/* Intel Icelake-X M2PCIE1 uncore */
 	PFM_PMU_INTEL_ICX_UNC_M2PCIE2,	/* Intel Icelake-X M2PCIE2 uncore */
+
+	PFM_PMU_INTEL_ADL_GLC,		/* Intel AlderLake Goldencove (P-Core) */
+	PFM_PMU_INTEL_ADL_GRT,		/* Intel AlderLake Gracemont (E-Core) */
+
+	PFM_PMU_INTEL_SPR_UNC_IMC0,	/* Intel SapphireRapids IMC channel 0 uncore */
+	PFM_PMU_INTEL_SPR_UNC_IMC1,	/* Intel SapphireRapids IMC channel 1 uncore */
+	PFM_PMU_INTEL_SPR_UNC_IMC2,	/* Intel SapphireRapids IMC channel 2 uncore */
+	PFM_PMU_INTEL_SPR_UNC_IMC3,	/* Intel SapphireRapids IMC channel 3 uncore */
+	PFM_PMU_INTEL_SPR_UNC_IMC4,	/* Intel SapphireRapids IMC channel 4 uncore */
+	PFM_PMU_INTEL_SPR_UNC_IMC5,	/* Intel SapphireRapids IMC channel 5 uncore */
+	PFM_PMU_INTEL_SPR_UNC_IMC6,	/* Intel SapphireRapids IMC channel 6 uncore */
+	PFM_PMU_INTEL_SPR_UNC_IMC7,	/* Intel SapphireRapids IMC channel 7 uncore */
+	PFM_PMU_INTEL_SPR_UNC_IMC8,	/* Intel SapphireRapids IMC channel 8 uncore */
+	PFM_PMU_INTEL_SPR_UNC_IMC9,	/* Intel SapphireRapids IMC channel 9 uncore */
+	PFM_PMU_INTEL_SPR_UNC_IMC10,	/* Intel SapphireRapids IMC channel 10 uncore */
+	PFM_PMU_INTEL_SPR_UNC_IMC11,	/* Intel SapphireRapids IMC channel 11 uncore */
+
+	PFM_PMU_INTEL_SPR_UNC_UPI0,	/* Intel SapphireRapids UPI0 uncore */
+	PFM_PMU_INTEL_SPR_UNC_UPI1,	/* Intel SapphireRapids UPI1 uncore */
+	PFM_PMU_INTEL_SPR_UNC_UPI2,	/* Intel SapphireRapids UPI2 uncore */
+	PFM_PMU_INTEL_SPR_UNC_UPI3,	/* Intel SapphireRapids UPI3 uncore */
+
+	PFM_PMU_INTEL_SPR_UNC_CHA0,	/* Intel SapphireRapids CHA core 0 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA1,	/* Intel SapphireRapids CHA core 1 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA2,	/* Intel SapphireRapids CHA core 2 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA3,	/* Intel SapphireRapids CHA core 3 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA4,	/* Intel SapphireRapids CHA core 4 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA5,	/* Intel SapphireRapids CHA core 5 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA6,	/* Intel SapphireRapids CHA core 6 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA7,	/* Intel SapphireRapids CHA core 7 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA8,	/* Intel SapphireRapids CHA core 8 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA9,	/* Intel SapphireRapids CHA core 9 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA10,	/* Intel SapphireRapids CHA core 10 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA11,	/* Intel SapphireRapids CHA core 11 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA12,	/* Intel SapphireRapids CHA core 12 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA13,	/* Intel SapphireRapids CHA core 13 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA14,	/* Intel SapphireRapids CHA core 14 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA15,	/* Intel SapphireRapids CHA core 15 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA16,	/* Intel SapphireRapids CHA core 16 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA17,	/* Intel SapphireRapids CHA core 17 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA18,	/* Intel SapphireRapids CHA core 18 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA19,	/* Intel SapphireRapids CHA core 19 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA20,	/* Intel SapphireRapids CHA core 20 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA21,	/* Intel SapphireRapids CHA core 21 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA22,	/* Intel SapphireRapids CHA core 22 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA23,	/* Intel SapphireRapids CHA core 23 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA24,	/* Intel SapphireRapids CHA core 24 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA25,	/* Intel SapphireRapids CHA core 25 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA26,	/* Intel SapphireRapids CHA core 26 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA27,	/* Intel SapphireRapids CHA core 27 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA28,	/* Intel SapphireRapids CHA core 28 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA29,	/* Intel SapphireRapids CHA core 39 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA30,	/* Intel SapphireRapids CHA core 30 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA31,	/* Intel SapphireRapids CHA core 31 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA32,	/* Intel SapphireRapids CHA core 32 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA33,	/* Intel SapphireRapids CHA core 33 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA34,	/* Intel SapphireRapids CHA core 34 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA35,	/* Intel SapphireRapids CHA core 35 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA36,	/* Intel SapphireRapids CHA core 36 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA37,	/* Intel SapphireRapids CHA core 37 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA38,	/* Intel SapphireRapids CHA core 38 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA39,	/* Intel SapphireRapids CHA core 39 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA40,	/* Intel SapphireRapids CHA core 40 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA41,	/* Intel SapphireRapids CHA core 41 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA42,	/* Intel SapphireRapids CHA core 42 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA43,	/* Intel SapphireRapids CHA core 43 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA44,	/* Intel SapphireRapids CHA core 44 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA45,	/* Intel SapphireRapids CHA core 45 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA46,	/* Intel SapphireRapids CHA core 46 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA47,	/* Intel SapphireRapids CHA core 47 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA48,	/* Intel SapphireRapids CHA core 48 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA49,	/* Intel SapphireRapids CHA core 49 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA50,	/* Intel SapphireRapids CHA core 50 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA51,	/* Intel SapphireRapids CHA core 51 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA52,	/* Intel SapphireRapids CHA core 52 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA53,	/* Intel SapphireRapids CHA core 53 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA54,	/* Intel SapphireRapids CHA core 54 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA55,	/* Intel SapphireRapids CHA core 55 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA56,	/* Intel SapphireRapids CHA core 56 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA57,	/* Intel SapphireRapids CHA core 57 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA58,	/* Intel SapphireRapids CHA core 58 uncore */
+	PFM_PMU_INTEL_SPR_UNC_CHA59,	/* Intel SapphireRapids CHA core 59 uncore */
+
+	PFM_PMU_INTEL_GNR,		/* Intel GraniteRapids core PMU */
+
+	PFM_PMU_AMD64_FAM1AH_ZEN5,      /* AMD64 Fam1Ah Zen5 */
+	PFM_PMU_AMD64_FAM1AH_ZEN5_L3,	/* AMD64 Fam1Ah Zen5 L3 */
+
+	PFM_PMU_ARM_CORTEX_A72,		/* ARM Cortex A72 (ARMv8) */
+	PFM_PMU_ARM_V3,			/* Arm Neoverse V3 (ARMv9) */
+	PFM_PMU_ARM_CORTEX_A55,		/* ARM Cortex A55 (ARMv8) */
+	PFM_PMU_ARM_CORTEX_A76,		/* ARM Cortex A76 (ARMv8) */
+	PFM_PMU_ARM_N3,			/* Arm Neoverse N3 */
+
+	PFM_PMU_ARM_MONAKA,		/* Fujitsu FUJITSU-MONAKA processor */
+
+	PFM_PMU_INTEL_GNR_UNC_IMC0,	/* Intel GraniteRapids IMC channel 0 */
+	PFM_PMU_INTEL_GNR_UNC_IMC1,	/* Intel GraniteRapids IMC channel 1 */
+	PFM_PMU_INTEL_GNR_UNC_IMC2,	/* Intel GraniteRapids IMC channel 2 */
+	PFM_PMU_INTEL_GNR_UNC_IMC3,	/* Intel GraniteRapids IMC channel 3 */
+	PFM_PMU_INTEL_GNR_UNC_IMC4,	/* Intel GraniteRapids IMC channel 4 */
+	PFM_PMU_INTEL_GNR_UNC_IMC5,	/* Intel GraniteRapids IMC channel 5 */
+	PFM_PMU_INTEL_GNR_UNC_IMC6,	/* Intel GraniteRapids IMC channel 6 */
+	PFM_PMU_INTEL_GNR_UNC_IMC7,	/* Intel GraniteRapids IMC channel 7 */
+	PFM_PMU_INTEL_GNR_UNC_IMC8,	/* Intel GraniteRapids IMC channel 8 */
+	PFM_PMU_INTEL_GNR_UNC_IMC9,	/* Intel GraniteRapids IMC channel 9 */
+	PFM_PMU_INTEL_GNR_UNC_IMC10,	/* Intel GraniteRapids IMC channel 10 */
+	PFM_PMU_INTEL_GNR_UNC_IMC11,	/* Intel GraniteRapids IMC channel 10 */
+
+	PFM_PMU_ARM_CORTEX_X4,		/* ARM Cortex X4 (ARMv9) */
+
+	PFM_PMU_ARM_OLYMPUS,		/* NVIDIA Olympus (ARMv9) */
+
+	PFM_PMU_AMD64_FAM1AH_ZEN6,	/* AMD64 Fam1Ah Zen6 */
+	PFM_PMU_AMD64_FAM1AH_ZEN6_L3,	/* AMD64 Fam1Ah Zen6 L3 */
 	/* MUST ADD NEW PMU MODELS HERE */
 
 	PFM_PMU_MAX			/* end marker */
@@ -869,7 +985,8 @@ typedef struct {
 		unsigned int    is_precise:1;	  /* Intel X86: supports PEBS */
 		unsigned int	is_speculative:2; /* count correct and wrong path occurrences */
 		unsigned int	support_hw_smpl:1;/* can be recorded by hw buffer (Intel X86=EXTPEBS) */
-		unsigned int	reserved_bits:27;
+		unsigned int	support_no_mods:1;/* attribute does not support modifiers (umask only) */
+		unsigned int	reserved_bits:26;
 	} SWIG_NAME(flags);
 	union {
 		uint64_t	dfl_val64;	/* default 64-bit value */

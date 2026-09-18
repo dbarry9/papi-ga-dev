@@ -201,8 +201,7 @@ createNativeEvents( void )
 	      char *featurelabel;
 
 	      if ( !( featurelabel = sensors_get_labelPtr( chip_name, feature ))) {
-		 fprintf( stderr, "ERROR: Can't get label of feature %s!\n",
-						 feature->name );
+		 SUBDBG( "ERROR: Can't get label of feature %s!\n", feature->name );
 		 continue;
 	      }
 
@@ -260,8 +259,7 @@ getEventValue( unsigned event_id )
 							 subfeat_nr, &value );
 
 	if ( res < 0 ) {
-		fprintf( stderr, "libsensors(): Could not read event #%d!\n",
-				 event_id );
+		SUBDBG( "libsensors(): Could not read event #%d!\n", event_id );
 		return -1;
 	}
 
@@ -375,7 +373,7 @@ link_lmsensors_libraries ()
       return PAPI_ENOSUPP;
    }
 
-   char path_name[1024];
+   char path_name[PATH_MAX];
    char *lmsensors_root = getenv("PAPI_LMSENSORS_ROOT"); 
    
    dl1 = NULL;
