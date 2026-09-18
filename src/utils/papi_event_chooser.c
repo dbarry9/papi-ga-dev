@@ -26,7 +26,7 @@
 #include <string.h>
 
 #include "papi.h"
-#include "utils_helper.h"
+#include "print_header.h"
 
 int EventSet = PAPI_NULL;
 int retval;

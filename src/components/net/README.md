@@ -2,8 +2,8 @@
 
 The NET component enables PAPI to access the network statistics exported by the Linux kernel through the /proc pseudo-file system (file /proc/net/dev).
 
-* [Enabling the NET Component](#enabling-the-net-component)
-* [FAQ](#faq)
+* [Enabling the NET Component](#markdown-header-enabling-the-net-component)
+* [FAQ](#markdown-header-faq)
 
 ***
 ## Enabling the NET Component
@@ -16,14 +16,6 @@ sufficient to enable the component.
 Typically, the utility `papi_components_avail` (available in
 `papi/src/utils/papi_components_avail`) will display the components available
 to the user, and whether they are disabled, and when they are disabled why.
-
-## Configuring Refresh Latency
-
-By default the net refresh latency is set to 1000000 microseconds. To update this value set
-`PAPI_NET_REFRESH_LATENCY`, i.e:
-
-    export PAPI_NET_REFRESH_LATENCY=your_value (in microseconds)
-
 
 ***
 ## FAQ
@@ -59,5 +51,7 @@ Note: The Linux network statistics are updated by code that resides in the file 
 * Network Stats Anomaly
   http://collectl.sourceforge.net/NetworkStats.html
 
-*  /proc/net/dev which lists the various network devices configured on the system, complete with transmit and receive statistics.
+* OccasNETnally corrupted network stats in /proc/net/dev
+  http://kerneltrap.org/mailarchive/linux-netdev/2008/1/14/566936
+  http://kerneltrap.org/mailarchive/linux-netdev/2008/1/14/567512
 

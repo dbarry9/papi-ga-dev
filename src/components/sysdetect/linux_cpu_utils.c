@@ -557,8 +557,7 @@ get_cache_type( const char *dirname, int *value )
 {
     char filename[BUFSIZ];
     char type_string[BUFSIZ];
-    char buffer[BUFSIZ];
-    int type = PAPI_MH_TYPE_EMPTY;
+    int type;
 
     sprintf(filename, "/sys/devices/system/cpu/cpu0/cache/%s/type",
             dirname);
@@ -569,14 +568,12 @@ get_cache_type( const char *dirname, int *value )
         return CPU_ERROR;
     }
 
-    char *result = fgets(buffer, BUFSIZ, fff);
+    char *result = fgets(type_string, BUFSIZ, fff);
     fclose(fff);
     if (result == NULL) {
         MEMDBG("Could not read cache type\n");
         return CPU_ERROR;
     }
-
-    sscanf(buffer,"%s",type_string);
 
     if (!strcmp(type_string, "Data")) {
         type = PAPI_MH_TYPE_DATA;
@@ -763,14 +760,6 @@ get_thread_affinity( int thread, int *val )
     if (!path_exist(_PATH_SYS_SYSTEM "/cpu/cpu0/node0")) {
         *val = 0;
         return CPU_SUCCESS;
-    }
-
-    // If gaps exist in the core numbering, the caller of this
-    // fucntion will likely inquire about cpu-ids that do not
-    // exist in the system (i.e., the gaps).
-    if( !path_exist(_PATH_SYS_SYSTEM "/cpu/cpu%d", thread) ){
-        *val = -1;
-        return CPU_ERROR;
     }
 
     int i = 0;

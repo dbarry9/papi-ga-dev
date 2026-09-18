@@ -2,9 +2,8 @@
  * Copyright (c) 2002-2006 Hewlett-Packard Development Company, L.P.
  * Contributed by Stephane Eranian <eranian@hpl.hp.com>
  *
- * Copyright (c) 2022-2026, NVIDIA CORPORATION & AFFILIATES.
+ * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES.
  * Contributed by John Linford <jlinford@nvidia.com>
- * Contributed by Thomas Makin <tmakin@nvidia.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -76,8 +75,7 @@ typedef struct {
 		unsigned int    is_precise:1;	 /* Intel X86: supports PEBS */
 		unsigned int	is_speculative:2;/* count correct and wrong path occurrences */
 		unsigned int	support_hw_smpl:1;/* can be recorded by hw buffer (Intel X86=EXTPEBS) */
-		unsigned int	support_no_mods:1;/* attribute does not support modifiers (umask only) */
-		unsigned int	reserved_bits:26;
+		unsigned int	reserved_bits:27;
 	};
 	union {
 		uint64_t	dfl_val64;	/* default 64-bit value */
@@ -137,7 +135,7 @@ typedef struct pfmlib_node {
 typedef struct pfmlib_pmu {
 	const char 	*desc;			/* PMU description */
 	const char 	*name;			/* pmu short name */
-	const char	*perf_name;		/* (Linux optional): comma separated list of possible perf_events PMU names */
+	const char	*perf_name;		/* perf_event pmu name (optional) */
 	pfmlib_node_t   node;			/* active list node */
 	struct pfmlib_pmu *next_active;		/* active PMU link list */
 	struct pfmlib_pmu *prev_active;		/* active PMU link list */
@@ -214,7 +212,6 @@ typedef struct {
 	int	inactive;
 	char	*forced_pmu;
 	char	*blacklist_pmus;
-	char	*proc_cpuinfo; /* override /proc/cpuinfo with this file */
 	FILE 	*fp;	/* verbose and debug file descriptor, default stderr or PFMLIB_DEBUG_STDOUT */
 } pfmlib_config_t;	
 
@@ -272,10 +269,6 @@ extern pfmlib_pmu_t amd64_fam17h_zen2_support;
 extern pfmlib_pmu_t amd64_fam19h_zen3_support;
 extern pfmlib_pmu_t amd64_fam19h_zen4_support;
 extern pfmlib_pmu_t amd64_fam19h_zen3_l3_support;
-extern pfmlib_pmu_t amd64_fam1ah_zen5_support;
-extern pfmlib_pmu_t amd64_fam1ah_zen5_l3_support;
-extern pfmlib_pmu_t amd64_fam1ah_zen6_support;
-extern pfmlib_pmu_t amd64_fam1ah_zen6_l3_support;
 extern pfmlib_pmu_t amd64_rapl_support;
 extern pfmlib_pmu_t intel_p6_support;
 extern pfmlib_pmu_t intel_ppro_support;
@@ -392,100 +385,7 @@ extern pfmlib_pmu_t intel_icx_unc_m2pcie0_support;
 extern pfmlib_pmu_t intel_icx_unc_m2pcie1_support;
 extern pfmlib_pmu_t intel_icx_unc_m2pcie2_support;
 extern pfmlib_pmu_t intel_spr_support;
-extern pfmlib_pmu_t intel_spr_unc_imc0_support;
-extern pfmlib_pmu_t intel_spr_unc_imc1_support;
-extern pfmlib_pmu_t intel_spr_unc_imc2_support;
-extern pfmlib_pmu_t intel_spr_unc_imc3_support;
-extern pfmlib_pmu_t intel_spr_unc_imc4_support;
-extern pfmlib_pmu_t intel_spr_unc_imc5_support;
-extern pfmlib_pmu_t intel_spr_unc_imc6_support;
-extern pfmlib_pmu_t intel_spr_unc_imc7_support;
-extern pfmlib_pmu_t intel_spr_unc_imc8_support;
-extern pfmlib_pmu_t intel_spr_unc_imc9_support;
-extern pfmlib_pmu_t intel_spr_unc_imc10_support;
-extern pfmlib_pmu_t intel_spr_unc_imc11_support;
-extern pfmlib_pmu_t intel_spr_unc_upi0_support;
-extern pfmlib_pmu_t intel_spr_unc_upi1_support;
-extern pfmlib_pmu_t intel_spr_unc_upi2_support;
-extern pfmlib_pmu_t intel_spr_unc_upi3_support;
-extern pfmlib_pmu_t intel_spr_unc_cha0_support;
-extern pfmlib_pmu_t intel_spr_unc_cha1_support;
-extern pfmlib_pmu_t intel_spr_unc_cha2_support;
-extern pfmlib_pmu_t intel_spr_unc_cha3_support;
-extern pfmlib_pmu_t intel_spr_unc_cha4_support;
-extern pfmlib_pmu_t intel_spr_unc_cha5_support;
-extern pfmlib_pmu_t intel_spr_unc_cha6_support;
-extern pfmlib_pmu_t intel_spr_unc_cha7_support;
-extern pfmlib_pmu_t intel_spr_unc_cha8_support;
-extern pfmlib_pmu_t intel_spr_unc_cha9_support;
-extern pfmlib_pmu_t intel_spr_unc_cha10_support;
-extern pfmlib_pmu_t intel_spr_unc_cha11_support;
-extern pfmlib_pmu_t intel_spr_unc_cha12_support;
-extern pfmlib_pmu_t intel_spr_unc_cha13_support;
-extern pfmlib_pmu_t intel_spr_unc_cha14_support;
-extern pfmlib_pmu_t intel_spr_unc_cha15_support;
-extern pfmlib_pmu_t intel_spr_unc_cha16_support;
-extern pfmlib_pmu_t intel_spr_unc_cha17_support;
-extern pfmlib_pmu_t intel_spr_unc_cha18_support;
-extern pfmlib_pmu_t intel_spr_unc_cha19_support;
-extern pfmlib_pmu_t intel_spr_unc_cha20_support;
-extern pfmlib_pmu_t intel_spr_unc_cha21_support;
-extern pfmlib_pmu_t intel_spr_unc_cha22_support;
-extern pfmlib_pmu_t intel_spr_unc_cha23_support;
-extern pfmlib_pmu_t intel_spr_unc_cha24_support;
-extern pfmlib_pmu_t intel_spr_unc_cha25_support;
-extern pfmlib_pmu_t intel_spr_unc_cha26_support;
-extern pfmlib_pmu_t intel_spr_unc_cha27_support;
-extern pfmlib_pmu_t intel_spr_unc_cha28_support;
-extern pfmlib_pmu_t intel_spr_unc_cha29_support;
-extern pfmlib_pmu_t intel_spr_unc_cha30_support;
-extern pfmlib_pmu_t intel_spr_unc_cha31_support;
-extern pfmlib_pmu_t intel_spr_unc_cha32_support;
-extern pfmlib_pmu_t intel_spr_unc_cha33_support;
-extern pfmlib_pmu_t intel_spr_unc_cha34_support;
-extern pfmlib_pmu_t intel_spr_unc_cha35_support;
-extern pfmlib_pmu_t intel_spr_unc_cha36_support;
-extern pfmlib_pmu_t intel_spr_unc_cha37_support;
-extern pfmlib_pmu_t intel_spr_unc_cha38_support;
-extern pfmlib_pmu_t intel_spr_unc_cha39_support;
-extern pfmlib_pmu_t intel_spr_unc_cha40_support;
-extern pfmlib_pmu_t intel_spr_unc_cha40_support;
-extern pfmlib_pmu_t intel_spr_unc_cha40_support;
-extern pfmlib_pmu_t intel_spr_unc_cha41_support;
-extern pfmlib_pmu_t intel_spr_unc_cha42_support;
-extern pfmlib_pmu_t intel_spr_unc_cha43_support;
-extern pfmlib_pmu_t intel_spr_unc_cha44_support;
-extern pfmlib_pmu_t intel_spr_unc_cha45_support;
-extern pfmlib_pmu_t intel_spr_unc_cha46_support;
-extern pfmlib_pmu_t intel_spr_unc_cha47_support;
-extern pfmlib_pmu_t intel_spr_unc_cha48_support;
-extern pfmlib_pmu_t intel_spr_unc_cha49_support;
-extern pfmlib_pmu_t intel_spr_unc_cha50_support;
-extern pfmlib_pmu_t intel_spr_unc_cha51_support;
-extern pfmlib_pmu_t intel_spr_unc_cha52_support;
-extern pfmlib_pmu_t intel_spr_unc_cha53_support;
-extern pfmlib_pmu_t intel_spr_unc_cha54_support;
-extern pfmlib_pmu_t intel_spr_unc_cha55_support;
-extern pfmlib_pmu_t intel_spr_unc_cha56_support;
-extern pfmlib_pmu_t intel_spr_unc_cha57_support;
-extern pfmlib_pmu_t intel_spr_unc_cha58_support;
-extern pfmlib_pmu_t intel_spr_unc_cha59_support;
 extern pfmlib_pmu_t intel_emr_support;
-extern pfmlib_pmu_t intel_gnr_support;
-extern pfmlib_pmu_t intel_gnr_unc_imc0_support;
-extern pfmlib_pmu_t intel_gnr_unc_imc1_support;
-extern pfmlib_pmu_t intel_gnr_unc_imc2_support;
-extern pfmlib_pmu_t intel_gnr_unc_imc3_support;
-extern pfmlib_pmu_t intel_gnr_unc_imc4_support;
-extern pfmlib_pmu_t intel_gnr_unc_imc5_support;
-extern pfmlib_pmu_t intel_gnr_unc_imc6_support;
-extern pfmlib_pmu_t intel_gnr_unc_imc7_support;
-extern pfmlib_pmu_t intel_gnr_unc_imc8_support;
-extern pfmlib_pmu_t intel_gnr_unc_imc9_support;
-extern pfmlib_pmu_t intel_gnr_unc_imc10_support;
-extern pfmlib_pmu_t intel_gnr_unc_imc11_support;
-extern pfmlib_pmu_t intel_adl_glc_support;
-extern pfmlib_pmu_t intel_adl_grt_support;
 extern pfmlib_pmu_t intel_rapl_support;
 extern pfmlib_pmu_t intel_snbep_unc_cb0_support;
 extern pfmlib_pmu_t intel_snbep_unc_cb1_support;
@@ -850,19 +750,11 @@ extern pfmlib_pmu_t arm_1176_support;
 extern pfmlib_pmu_t arm_qcom_krait_support;
 extern pfmlib_pmu_t arm_cortex_a57_support;
 extern pfmlib_pmu_t arm_cortex_a53_support;
-extern pfmlib_pmu_t arm_cortex_a55_support;
-extern pfmlib_pmu_t arm_cortex_a72_support;
-extern pfmlib_pmu_t arm_cortex_a76_support;
-extern pfmlib_pmu_t arm_cortex_x4_support;
 extern pfmlib_pmu_t arm_xgene_support;
 extern pfmlib_pmu_t arm_n1_support;
 extern pfmlib_pmu_t arm_n2_support;
-extern pfmlib_pmu_t arm_n3_support;
 extern pfmlib_pmu_t arm_v1_support;
 extern pfmlib_pmu_t arm_v2_support;
-extern pfmlib_pmu_t arm_v3_support;
-
-extern pfmlib_pmu_t arm_nvidia_olympus_support;
 
 extern pfmlib_pmu_t arm_thunderx2_support;
 extern pfmlib_pmu_t arm_thunderx2_dmc0_support;
@@ -873,7 +765,6 @@ extern pfmlib_pmu_t arm_thunderx2_ccpi0_support;
 extern pfmlib_pmu_t arm_thunderx2_ccpi1_support;
 
 extern pfmlib_pmu_t arm_fujitsu_a64fx_support;
-extern pfmlib_pmu_t arm_fujitsu_monaka_support;
 
 extern pfmlib_pmu_t arm_hisilicon_kunpeng_support;
 extern pfmlib_pmu_t arm_hisilicon_kunpeng_sccl1_ddrc0_support;

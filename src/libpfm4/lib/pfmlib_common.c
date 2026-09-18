@@ -8,9 +8,8 @@
  * Copyright (c) 2001-2006 Hewlett-Packard Development Company, L.P.
  * Contributed by Stephane Eranian <eranian@hpl.hp.com>
  *
- * Copyright (c) 2022-2026, NVIDIA CORPORATION & AFFILIATES.
+ * Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES.
  * Contributed by John Linford <jlinford@nvidia.com>
- * Contributed by Thomas Makin <tmakin@nvidia.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -89,10 +88,6 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&amd64_fam19h_zen3_support,
 	&amd64_fam19h_zen4_support,
 	&amd64_fam19h_zen3_l3_support,
-	&amd64_fam1ah_zen5_support,
-	&amd64_fam1ah_zen5_l3_support,
-	&amd64_fam1ah_zen6_support,
-	&amd64_fam1ah_zen6_l3_support,
 	&amd64_rapl_support,
 	&intel_core_support,
 	&intel_atom_support,
@@ -203,98 +198,7 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&intel_icx_unc_m2pcie1_support,
 	&intel_icx_unc_m2pcie2_support,
 	&intel_spr_support,
-	&intel_spr_unc_imc0_support,
-	&intel_spr_unc_imc1_support,
-	&intel_spr_unc_imc2_support,
-	&intel_spr_unc_imc3_support,
-	&intel_spr_unc_imc4_support,
-	&intel_spr_unc_imc5_support,
-	&intel_spr_unc_imc6_support,
-	&intel_spr_unc_imc7_support,
-	&intel_spr_unc_imc8_support,
-	&intel_spr_unc_imc9_support,
-	&intel_spr_unc_imc10_support,
-	&intel_spr_unc_imc11_support,
-	&intel_spr_unc_upi0_support,
-	&intel_spr_unc_upi1_support,
-	&intel_spr_unc_upi2_support,
-	&intel_spr_unc_upi3_support,
-	&intel_spr_unc_cha0_support,
-	&intel_spr_unc_cha1_support,
-	&intel_spr_unc_cha2_support,
-	&intel_spr_unc_cha3_support,
-	&intel_spr_unc_cha4_support,
-	&intel_spr_unc_cha5_support,
-	&intel_spr_unc_cha6_support,
-	&intel_spr_unc_cha7_support,
-	&intel_spr_unc_cha8_support,
-	&intel_spr_unc_cha9_support,
-	&intel_spr_unc_cha10_support,
-	&intel_spr_unc_cha11_support,
-	&intel_spr_unc_cha12_support,
-	&intel_spr_unc_cha13_support,
-	&intel_spr_unc_cha14_support,
-	&intel_spr_unc_cha15_support,
-	&intel_spr_unc_cha16_support,
-	&intel_spr_unc_cha17_support,
-	&intel_spr_unc_cha18_support,
-	&intel_spr_unc_cha19_support,
-	&intel_spr_unc_cha20_support,
-	&intel_spr_unc_cha21_support,
-	&intel_spr_unc_cha22_support,
-	&intel_spr_unc_cha23_support,
-	&intel_spr_unc_cha24_support,
-	&intel_spr_unc_cha25_support,
-	&intel_spr_unc_cha26_support,
-	&intel_spr_unc_cha27_support,
-	&intel_spr_unc_cha28_support,
-	&intel_spr_unc_cha29_support,
-	&intel_spr_unc_cha30_support,
-	&intel_spr_unc_cha31_support,
-	&intel_spr_unc_cha32_support,
-	&intel_spr_unc_cha33_support,
-	&intel_spr_unc_cha34_support,
-	&intel_spr_unc_cha35_support,
-	&intel_spr_unc_cha36_support,
-	&intel_spr_unc_cha37_support,
-	&intel_spr_unc_cha38_support,
-	&intel_spr_unc_cha39_support,
-	&intel_spr_unc_cha40_support,
-	&intel_spr_unc_cha41_support,
-	&intel_spr_unc_cha42_support,
-	&intel_spr_unc_cha43_support,
-	&intel_spr_unc_cha44_support,
-	&intel_spr_unc_cha45_support,
-	&intel_spr_unc_cha46_support,
-	&intel_spr_unc_cha47_support,
-	&intel_spr_unc_cha48_support,
-	&intel_spr_unc_cha49_support,
-	&intel_spr_unc_cha50_support,
-	&intel_spr_unc_cha51_support,
-	&intel_spr_unc_cha52_support,
-	&intel_spr_unc_cha53_support,
-	&intel_spr_unc_cha54_support,
-	&intel_spr_unc_cha55_support,
-	&intel_spr_unc_cha56_support,
-	&intel_spr_unc_cha57_support,
-	&intel_spr_unc_cha58_support,
-	&intel_spr_unc_cha59_support,
 	&intel_emr_support,
-	&intel_gnr_support,
-	&intel_gnr_unc_imc0_support,
-	&intel_gnr_unc_imc1_support,
-	&intel_gnr_unc_imc2_support,
-	&intel_gnr_unc_imc3_support,
-	&intel_gnr_unc_imc4_support,
-	&intel_gnr_unc_imc5_support,
-	&intel_gnr_unc_imc6_support,
-	&intel_gnr_unc_imc7_support,
-	&intel_gnr_unc_imc8_support,
-	&intel_gnr_unc_imc9_support,
-	&intel_gnr_unc_imc10_support,
-	&intel_gnr_unc_imc11_support,
-	&intel_adl_glc_support,
-	&intel_adl_grt_support,
 	&intel_rapl_support,
 	&intel_snbep_unc_cb0_support,
 	&intel_snbep_unc_cb1_support,
@@ -673,10 +577,6 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&arm_qcom_krait_support,
 	&arm_cortex_a57_support,
 	&arm_cortex_a53_support,
-	&arm_cortex_a55_support,
-	&arm_cortex_a72_support,
-	&arm_cortex_a76_support,
-	&arm_cortex_x4_support,
 	&arm_xgene_support,
 	&arm_thunderx2_support,
 	&arm_thunderx2_dmc0_support,
@@ -687,10 +587,8 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&arm_thunderx2_ccpi1_support,
 	&arm_n1_support,
 	&arm_n2_support,
-	&arm_n3_support,
 	&arm_v1_support,
 	&arm_v2_support,
-	&arm_v3_support,
 	&arm_hisilicon_kunpeng_support,
 	&arm_hisilicon_kunpeng_sccl1_ddrc0_support,
 	&arm_hisilicon_kunpeng_sccl1_ddrc1_support,
@@ -748,15 +646,10 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&arm_hisilicon_kunpeng_sccl7_l3c21_support,
 	&arm_hisilicon_kunpeng_sccl7_l3c22_support,
 	&arm_hisilicon_kunpeng_sccl7_l3c23_support,
-	&arm_nvidia_olympus_support,
 #endif
 #ifdef CONFIG_PFMLIB_ARCH_ARM64
 	&arm_cortex_a57_support,
 	&arm_cortex_a53_support,
-	&arm_cortex_a55_support,
-	&arm_cortex_a72_support,
-	&arm_cortex_a76_support,
-	&arm_cortex_x4_support,
 	&arm_xgene_support,
 	&arm_thunderx2_support,
 	&arm_thunderx2_dmc0_support,
@@ -766,7 +659,6 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&arm_thunderx2_ccpi0_support,
 	&arm_thunderx2_ccpi1_support,
 	&arm_fujitsu_a64fx_support,
-	&arm_fujitsu_monaka_support,
 	&arm_hisilicon_kunpeng_sccl1_ddrc0_support,
 	&arm_hisilicon_kunpeng_sccl1_ddrc1_support,
 	&arm_hisilicon_kunpeng_sccl1_ddrc2_support,
@@ -825,12 +717,9 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&arm_hisilicon_kunpeng_sccl7_l3c23_support,
 	&arm_n1_support,
 	&arm_n2_support,
-	&arm_n3_support,
 	&arm_v1_support,
 	&arm_v2_support,
-	&arm_v3_support,
 	&arm_hisilicon_kunpeng_support,
-	&arm_nvidia_olympus_support,
 #endif
 
 #ifdef CONFIG_PFMLIB_ARCH_S390X
@@ -995,8 +884,7 @@ pfmlib_getl(char **buffer, size_t *len, FILE *fp)
 		if (c == '\n')
 			break;
 	}
-	if (c != EOF)
-		b[i] = '\0';
+	b[i] = '\0';
 	return c != EOF ? 0 : -1;
 }
 
@@ -1221,14 +1109,6 @@ pfmlib_init_env(void)
 	str = getenv("LIBPFM_DISABLED_PMUS");
 	if (str)
 		pfm_cfg.blacklist_pmus = str;
-
-#ifdef CONFIG_PFMLIB_OS_LINUX
-	str = getenv("LIBPFM_PROC_CPUINFO");
-	if (str)
-		pfm_cfg.proc_cpuinfo = str;
-	else
-		pfm_cfg.proc_cpuinfo = "/proc/cpuinfo";
-#endif
 }
 
 static int
@@ -1764,7 +1644,7 @@ pfmlib_build_event_pattrs(pfmlib_event_desc_t  *e)
 	if (pmu->get_event_nattrs)
 		pmu_nattrs = pmu->get_event_nattrs(pmu, e->event);
 	if (os && os->get_os_nattrs)
-		os_nattrs = os->get_os_nattrs(os, e);
+		os_nattrs += os->get_os_nattrs(os, e);
 
 	npattrs = pmu_nattrs + os_nattrs;
 
@@ -2492,7 +2372,6 @@ pfm_get_event_attr_info(int idx, int attr_idx, pfm_os_t os, pfm_event_attr_info_
 	uinfo->is_precise = info->is_precise;
 	uinfo->is_speculative = info->is_speculative;
 	uinfo->support_hw_smpl = info->support_hw_smpl;
-	uinfo->support_no_mods = info->support_no_mods;
 	uinfo->reserved_bits = 0;
 	uinfo->dfl_val64 = info->dfl_val64;
 

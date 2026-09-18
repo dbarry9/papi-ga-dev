@@ -1,4 +1,4 @@
-.TH "PAPI_set_debug" 3 "Wed Jun 25 2025 19:30:49" "Version 7.2.0.0" "PAPI" \" -*- nroff -*-
+.TH "PAPI_set_debug" 3 "Thu Dec 14 2023" "Version 7.1.0.0" "PAPI" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -15,7 +15,7 @@ PAPI_set_debug \- Set the current debug level for error output from PAPI\&.
 .RS 4
 #include <\fBpapi\&.h\fP> 
 .br
- int PAPI_set_debug( int level );
+ int \fBPAPI_set_debug( int level )\fP;
 .RE
 .PP
 \fBParameters\fP
@@ -24,11 +24,12 @@ PAPI_set_debug \- Set the current debug level for error output from PAPI\&.
 .br
  The possible debug levels for debugging are shown below\&. 
 .PD 0
-.IP "\(bu" 1
+
+.IP "\(bu" 2
 PAPI_QUIET Do not print anything, just return the error code 
-.IP "\(bu" 1
+.IP "\(bu" 2
 PAPI_VERB_ECONT Print error message and continue 
-.IP "\(bu" 1
+.IP "\(bu" 2
 PAPI_VERB_ESTOP Print error message and exit 
 .br
 
@@ -66,7 +67,7 @@ The PAPI error handler prints out messages in the following form:
 .PP
 \fBNote\fP
 .RS 4
-This is the ONLY function that may be called BEFORE PAPI_library_init()\&. 
+This is the ONLY function that may be called BEFORE \fBPAPI_library_init()\fP\&. 
 .br
  
 .RE

@@ -115,6 +115,7 @@ typedef struct {
 #ifndef MAXPATHLEN
 #define MAXPATHLEN	1024
 #endif
+static char debugfs_mnt[MAXPATHLEN];
 
 #define PERF_ATTR_HW 0
 #define PERF_ATTR_SW 0
@@ -126,7 +127,7 @@ typedef struct {
 static perf_event_t *perf_pe = perf_static_events;
 static perf_event_t  *perf_pe_free, *perf_pe_end;
 static perf_umask_t *perf_um, *perf_um_free, *perf_um_end;
-static int perf_pe_count;
+static int perf_pe_count, perf_um_count;
 
 static inline int
 pfm_perf_pmu_supported_plm(void *this)
@@ -143,6 +144,11 @@ pfm_perf_pmu_supported_plm(void *this)
 	return pmu->supported_plm;
 }
 
+static inline unsigned long
+perf_get_ovfl_umask_idx(perf_umask_t *um)
+{
+	return um - perf_um;
+}
 
 static inline perf_umask_t *
 perf_get_ovfl_umask(int pidx)
@@ -165,7 +171,54 @@ perf_attridx2um(int idx, int attr_idx)
 	return um;
 }
 
+/*
+ * figure out the mount point of the debugfs filesystem
+ *
+ * returns -1 if none is found
+ */
+static int
+get_debugfs_mnt(void)
+{
+	FILE *fp;
+	char *buffer = NULL;
+	size_t len = 0;
+	char *q, *mnt, *fs;
+	int res = -1;
 
+	fp = fopen("/proc/mounts", "r");
+	if (!fp)
+		return -1;
+
+	while(pfmlib_getl(&buffer, &len, fp) != -1) {
+
+		q = strchr(buffer, ' ');
+		if (!q)
+			continue;
+		mnt = ++q;
+		q = strchr(q, ' ');
+		if (!q)
+			continue;
+		*q = '\0';
+
+		fs = ++q;
+		q = strchr(q, ' ');
+		if (!q)
+			continue;
+		*q = '\0';
+
+		if (!strcmp(fs, "debugfs")) {
+			strncpy(debugfs_mnt, mnt, MAXPATHLEN);
+			debugfs_mnt[MAXPATHLEN-1]= '\0';
+			res = 0;
+			break;
+		}
+	}
+	free(buffer);
+
+	fclose(fp);
+
+	return res;
+}
 
 #define PERF_ALLOC_EVENT_COUNT	(512)
 #define PERF_ALLOC_UMASK_COUNT	(1024)
@@ -245,65 +298,6 @@ retry:
 	perf_pe = new_pe;
 
 	goto retry;
-}
-
-#ifndef CONFIG_PFMLIB_NOTRACEPOINT
-static int perf_um_count;
-static char debugfs_mnt[MAXPATHLEN];
-
-static inline unsigned long
-perf_get_ovfl_umask_idx(perf_umask_t *um)
-{
-	return um - perf_um;
-}
-
-/*
- * figure out the mount point of the debugfs filesystem
- *
- * returns -1 if none is found
- */
-static int
-get_debugfs_mnt(void)
-{
-	FILE *fp;
-	char *buffer = NULL;
-	size_t len = 0;
-	char *q, *mnt, *fs;
-	int res = -1;
-
-	fp = fopen("/proc/mounts", "r");
-	if (!fp)
-		return -1;
-
-	while(pfmlib_getl(&buffer, &len, fp) != -1) {
-
-		q = strchr(buffer, ' ');
-		if (!q)
-			continue;
-		mnt = ++q;
-		q = strchr(q, ' ');
-		if (!q)
-			continue;
-		*q = '\0';
-
-		fs = ++q;
-		q = strchr(q, ' ');
-		if (!q)
-			continue;
-		*q = '\0';
-
-		if (!strcmp(fs, "debugfs")) {
-			strncpy(debugfs_mnt, mnt, MAXPATHLEN);
-			debugfs_mnt[MAXPATHLEN-1]= '\0';
-			res = 0;
-			break;
-		}
-	}
-	free(buffer);
-
-	fclose(fp);
-
-	return res;
 }
 
 /*
@@ -542,7 +536,6 @@ gen_tracepoint_table(void)
 	}
 	closedir(dir1);
 }
-#endif /* CONFIG_PFMLIB_NOTRACEPOINT */
 
 static int
 pfm_perf_detect(void *this)
@@ -568,7 +561,7 @@ event_exist(perf_event_t *e)
 {
 	char buf[PATH_MAX];
 
-	snprintf(buf, PATH_MAX, "%s/%s/events/%s", SYSFS_PMU_DEVICES_DIR, e->pmu ? e->pmu : "cpu", e->name);
+	snprintf(buf, PATH_MAX, "/sys/devices/%s/events/%s", e->pmu ? e->pmu : "cpu", e->name);
 
 	return access(buf, F_OK) == 0;
 }
@@ -612,10 +605,8 @@ pfm_perf_init(void *this)
 	 */
 	perf_event_support.pme_count = PME_PERF_EVENT_COUNT;
 
-#ifndef CONFIG_PFMLIB_NOTRACEPOINT
 	/* must dynamically add tracepoints */
 	gen_tracepoint_table();
-#endif
 
 	/* must dynamically add optional hw events */
 	add_optional_events();

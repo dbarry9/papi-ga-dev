@@ -168,7 +168,7 @@ static int pfm_cpumcf_init(void *this)
 	/* counters based on second version number */
 	csvn_set = cpumcf_svn_generic_counters;
 	csvn_set_count = LIBPFM_ARRAY_SIZE(cpumcf_svn_generic_counters);
-	if (csvn < 6)	/* Crypto counter set enlarged for SVN == 6 7 and 8 */
+	if (csvn < 6)	/* Crypto counter set enlarged for SVN == 6 */
 		csvn_set_count -= CPUMF_SVN6_ECC;
 
 	/* check and assign a machine-specific extended counter set */
@@ -208,11 +208,6 @@ static int pfm_cpumcf_init(void *this)
 		ext_set = cpumcf_z16_counters;
 		ext_set_count = LIBPFM_ARRAY_SIZE(cpumcf_z16_counters);
 		break;
-	case 9175:  /* IBM Machine types 9175 and 9176 */
-	case 9176:
-		ext_set = cpumcf_z17_counters;
-		ext_set_count = LIBPFM_ARRAY_SIZE(cpumcf_z17_counters);
-		break;
 	default:
 		/* No extended counter set for this machine type or there
 		 * was an error retrieving the machine type */
@@ -221,8 +216,8 @@ static int pfm_cpumcf_init(void *this)
 		break;
 	}
 
-	cpumcf_pe = calloc(cfvn_set_count + csvn_set_count + ext_set_count,
-			   sizeof(*cpumcf_pe));
+	cpumcf_pe = calloc(sizeof(*cpumcf_pe),
+			   cfvn_set_count + csvn_set_count + ext_set_count);
 	if (cpumcf_pe == NULL)
 		return PFM_ERR_NOMEM;
 

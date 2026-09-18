@@ -22,7 +22,6 @@
 #include <sys/utsname.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
-#include <linux/capability.h>
 
 /* PAPI-specific includes */
 #include "papi.h"
@@ -115,14 +114,14 @@ get_read_format( unsigned int multiplex,
 /* In case headers aren't new enough to have __NR_perf_event_open */
 #ifndef __NR_perf_event_open
 
-#if defined(__powerpc__)
+#ifdef __powerpc__
 #define __NR_perf_event_open	319
 #elif defined(__x86_64__)
 #define __NR_perf_event_open	298
 #elif defined(__i386__)
 #define __NR_perf_event_open	336
-#elif defined(__arm__)
-#define __NR_perf_event_open	364+0x900000
+#elif defined(__arm__)          366+0x900000
+#define __NR_perf_event_open
 #endif
 
 #endif
@@ -618,35 +617,7 @@ _peu_init_component( int cidx )
    if (retval!=1) fprintf(stderr,"Error reading paranoid level\n");
    fclose(fff);
 
-   /* Check for availability of perf_event through capabilities */
-   int perfmon_capabilities = 0;
-#if defined(__NR_capget)
-   struct __user_cap_header_struct cap_header;
-   struct __user_cap_data_struct cap_data[2];
 
-   memset( &cap_header, 0, sizeof(cap_header) );
-   memset( cap_data, 0, sizeof(cap_data) );
-
-   cap_header.version = _LINUX_CAPABILITY_VERSION_3;
-   cap_header.pid = 0;
-
-   retval = syscall(__NR_capget, &cap_header, &cap_data);
-   if (retval < 0) {
-     strCpy=strncpy( _papi_hwd[cidx]->cmp_info.disabled_reason,
-	     "Error querying Linux capabilities",PAPI_MAX_STR_LEN );
-     _peu_shutdown_component( );
-     if (strCpy == NULL) HANDLE_STRING_ERROR;
-     retval = PAPI_ECMP;
-     goto fn_fail;
-   }
-
-   #ifdef CAP_PERFMON
-      perfmon_capabilities = (cap_data[0].permitted & (1 << CAP_SYS_ADMIN)) ||
-                             (cap_data[1].permitted & (1 << (CAP_PERFMON - 32)));
-   #else
-      perfmon_capabilities = cap_data[0].permitted & (1 << CAP_SYS_ADMIN);
-   #endif
-#endif
    /* Run the libpfm4-specific setup */
 
    retval = _papi_libpfm4_init(_papi_hwd[cidx]);
@@ -692,9 +663,9 @@ _peu_init_component( int cidx )
    /* 0 means you can access CPU-specific data */
    /* -1 means no restrictions                 */
 
-   if ((paranoid_level>0) && (!perfmon_capabilities)) {
+   if ((paranoid_level>0) && (getuid()!=0)) {
       strCpy=strncpy(_papi_hwd[cidx]->cmp_info.disabled_reason,
-	    "Insufficient permissions for uncore access.  Set /proc/sys/kernel/perf_event_paranoid to 0, run as root or get CAP_PERFMON.",
+	    "Insufficient permissions for uncore access.  Set /proc/sys/kernel/perf_event_paranoid to 0 or run as root.",
 	    PAPI_MAX_STR_LEN);
       _peu_shutdown_component( );
      if (strCpy == NULL) HANDLE_STRING_ERROR;

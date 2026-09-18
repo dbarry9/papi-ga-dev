@@ -21,7 +21,6 @@
 #endif
 
 #include <stdio.h>
-#include <unistd.h>
 
 /* Debug Levels */
 

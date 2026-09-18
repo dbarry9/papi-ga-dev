@@ -1,4 +1,4 @@
-CC ?= gcc
+CC = gcc
 CFLAGS = -O2 -Wall -fopenmp
 LFLAGS = 
 PAPI_INCLUDE = ../../.. 
@@ -14,3 +14,4 @@ powercap_plot.o:	powercap_plot.c
 
 clean:	
 	rm -f *~ *.o powercap_plot results*
+

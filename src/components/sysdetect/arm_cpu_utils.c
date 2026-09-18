@@ -26,7 +26,6 @@
 #define NAMEID_BROADCOM_THUNDERX2 0x516
 #define NAMEID_CAVIUM_THUNDERX2   0x0af
 #define NAMEID_FUJITSU_A64FX      0x001
-#define NAMEID_FUJITSU_MONAKA     0x003
 #define NAMEID_HISILICON_KUNPENG  0xd01
 #define NAMEID_APM_XGENE          0x000
 #define NAMEID_QUALCOMM_KRAIT     0x040
@@ -43,30 +42,6 @@ _sysdetect_cache_level_info_t fujitsu_a64fx_cache_info[] = {
         1,
         {
             {PAPI_MH_TYPE_UNIFIED, 8388608, 256, 2048, 16},
-            {PAPI_MH_TYPE_EMPTY, -1, -1, -1, -1}
-        }
-    },
-};
-
-_sysdetect_cache_level_info_t arm_neoverse_v2_cache_info[] = {
-    { // level 1 begins
-        2,
-        {
-            {PAPI_MH_TYPE_INST, 65536, 64, 256, 4},
-            {PAPI_MH_TYPE_DATA, 65536, 64, 256, 4}
-        }
-    },
-    { // level 2 begins
-        1,
-        {
-            {PAPI_MH_TYPE_UNIFIED, 1048576, 64, 2048, 8},
-            {PAPI_MH_TYPE_EMPTY, -1, -1, -1, -1}
-        }
-    },
-    { // level 3 begins
-        1,
-        {
-            {PAPI_MH_TYPE_UNIFIED, 119537664, 64, 155648, 12},
             {PAPI_MH_TYPE_EMPTY, -1, -1, -1, -1}
         }
     },
@@ -335,9 +310,6 @@ name_id_fujitsu_cpu_get_name( int name_id, char *name )
         case NAMEID_FUJITSU_A64FX:
             strcpy(name, "Fujitsu A64FX");
             break;
-        case NAMEID_FUJITSU_MONAKA:
-            strcpy(name, "Fujitsu FUJITSU-MONAKA");
-            break;
         default:
             papi_errno = PAPI_ENOSUPP;
     }
@@ -417,13 +389,6 @@ get_cache_info( CPU_attr_e attr, int level, int *value )
         case VENDOR_ARM_FUJITSU:
             if ( NAMEID_FUJITSU_A64FX == partnum ) { /* Fujitsu A64FX */
                 clevel_ptr = fujitsu_a64fx_cache_info;
-            } else {
-                return CPU_ERROR;
-            }
-            break;
-        case VENDOR_ARM_ARM:
-            if ( NAMEID_ARM_NEOVERSE_V2 == partnum ) { /* ARM Neoverse V2 */
-                clevel_ptr = arm_neoverse_v2_cache_info;
             } else {
                 return CPU_ERROR;
             }

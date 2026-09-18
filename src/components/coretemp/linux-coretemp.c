@@ -72,7 +72,7 @@ insert_in_list(char *name, char *units,
 		   /* Because this is a function, it is possible */
 		   /* we are called with root!=NULL but no last  */
 		   /* so add this to keep coverity happy         */
-		   papi_free(temp);
+		   free(temp);
 		   PAPIERROR("This shouldn't be possible\n");
 
 		   return PAPI_ECMP;
@@ -106,7 +106,6 @@ generateEventList(char *base_dir)
     struct dirent *hwmonx;
     int i,pathnum;
     int retlen;
-    int err = PAPI_OK;
 
 #define NUM_PATHS 2
     char paths[NUM_PATHS][PATH_MAX]={
@@ -134,7 +133,6 @@ generateEventList(char *base_dir)
 		     base_dir, hwmonx->d_name,paths[pathnum]);
         if (retlen <= 0 || PATH_MAX <= retlen) {
             SUBDBG("Path length is too long.\n");
-            closedir(dir);
             return PAPI_EINVAL;
         }
 	    SUBDBG("Trying to open %s\n",path);
@@ -148,8 +146,7 @@ generateEventList(char *base_dir)
 	    retlen = snprintf(filename, PAPI_MAX_STR_LEN, "%s/name",path);
         if (retlen <= 0 || PAPI_MAX_STR_LEN <= retlen) {
             SUBDBG("Module name too long.\n");
-            err = PAPI_EINVAL;
-            goto done_error;
+            return PAPI_EINVAL;
         }
 	    fff=fopen(filename,"r");
 	    if (fff==NULL) {
@@ -179,8 +176,7 @@ generateEventList(char *base_dir)
 		      path,i);
          if (retlen <= 0 || PAPI_MAX_STR_LEN <= retlen) {
             SUBDBG("Failed to construct location label.\n");
-            err = PAPI_EINVAL;
-            goto done_error;
+            return PAPI_EINVAL;
          }
 	     fff=fopen(filename,"r");
 	     if (fff==NULL) {
@@ -198,8 +194,7 @@ generateEventList(char *base_dir)
 		      path,i);
          if (retlen <= 0 || PAPI_MAX_STR_LEN <= retlen) {
             SUBDBG("Failed input temperature string.\n");
-            err = PAPI_EINVAL;
-            goto done_error;
+            return PAPI_EINVAL;
          }
 	     fff=fopen(filename,"r");
 	     if (fff==NULL) continue;
@@ -208,8 +203,9 @@ generateEventList(char *base_dir)
 	     retlen = snprintf(name, PAPI_MAX_STR_LEN, "%s:in%i_input", hwmonx->d_name, i);
 	     if (retlen <= 0 || PAPI_MAX_STR_LEN <= retlen) {
 	         SUBDBG("Unable to generate name %s:in%i_input\n", hwmonx->d_name, i);
-	         err = PAPI_EINVAL;
-                 goto done_error;
+		 closedir(dir);
+		 closedir(d);
+	         return ( PAPI_EINVAL );
 	     }
 
 	     snprintf(units, PAPI_MIN_STR_LEN, "V");
@@ -218,13 +214,12 @@ generateEventList(char *base_dir)
 		      location);
          if (retlen <= 0 || PAPI_MAX_STR_LEN <= retlen) {
             SUBDBG("snprintf failed.\n");
-            err = PAPI_EINVAL;
-            goto done_error;
+            return PAPI_EINVAL;
          }
 
-	     err = insert_in_list(name,units,description,filename);
-	     if (err != PAPI_OK)
-		goto done_error;
+	     if (insert_in_list(name,units,description,filename)!=PAPI_OK) {
+	        goto done_error;
+	     }
 
 	     count++;
 
@@ -241,8 +236,7 @@ generateEventList(char *base_dir)
 		      path,i);
          if (retlen <= 0 || PAPI_MAX_STR_LEN <= retlen) {
             SUBDBG("Location label string failed.\n");
-            err = PAPI_EINVAL;
-            goto done_error;
+            return PAPI_EINVAL;
          }
 	     fff=fopen(filename,"r");
 	     if (fff==NULL) {
@@ -260,8 +254,7 @@ generateEventList(char *base_dir)
 		      path,i);
          if (retlen <= 0 || PAPI_MAX_STR_LEN <= retlen) {
             SUBDBG("Input temperature string failed.\n");
-            err = PAPI_EINVAL;
-            goto done_error;
+            return PAPI_EINVAL;
          }
 	     fff=fopen(filename,"r");
 	     if (fff==NULL) continue;
@@ -270,8 +263,9 @@ generateEventList(char *base_dir)
 	     retlen = snprintf(name, PAPI_MAX_STR_LEN, "%s:temp%i_input", hwmonx->d_name, i);
 	     if (retlen <= 0 || PAPI_MAX_STR_LEN <= retlen) {
 	         SUBDBG("Unable to generate name %s:temp%i_input\n", hwmonx->d_name, i);
-	         err = PAPI_EINVAL;
-                 goto done_error;
+            closedir(d);
+            closedir(dir);
+	         return ( PAPI_EINVAL );
 	     }
 
 	     snprintf(units, PAPI_MIN_STR_LEN, "degrees C");
@@ -280,13 +274,12 @@ generateEventList(char *base_dir)
 		      location);
          if (retlen <= 0 || PAPI_MAX_STR_LEN <= retlen) {
             SUBDBG("snprintf failed.\n");
-            err = PAPI_EINVAL;
-            goto done_error;
+            return PAPI_EINVAL;
          }
 
-	     err = insert_in_list(name,units,description,filename);
-	     if (err != PAPI_OK)
-		goto done_error;
+	     if (insert_in_list(name,units,description,filename)!=PAPI_OK) {
+	        goto done_error;
+	     }
 
 	     count++;
 	  }
@@ -302,8 +295,7 @@ generateEventList(char *base_dir)
 		      path,i);
          if (retlen <= 0 || PAPI_MAX_STR_LEN <= retlen) {
             SUBDBG("Failed to write fan label string.\n");
-            err = PAPI_EINVAL;
-            goto done_error;
+            return PAPI_EINVAL;
          }
 	     fff=fopen(filename,"r");
 	     if (fff==NULL) {
@@ -320,8 +312,9 @@ generateEventList(char *base_dir)
 	     retlen = snprintf(filename, PAPI_MAX_STR_LEN, "%s/fan%d_input", path,i);
 	     if (retlen <= 0 || PAPI_MAX_STR_LEN <= retlen) {
 	         SUBDBG("Unable to generate filename %s/fan%d_input\n", path,i);
-                 err = PAPI_EINVAL;
-                 goto done_error;
+            closedir(d);
+            closedir(dir);
+	         return ( PAPI_EINVAL );
 	     }
 
 	     fff=fopen(filename,"r");
@@ -331,8 +324,9 @@ generateEventList(char *base_dir)
 	     retlen = snprintf(name, PAPI_MAX_STR_LEN, "%s:fan%i_input", hwmonx->d_name, i);
 	     if (retlen <= 0 || PAPI_MAX_STR_LEN <= retlen) {
 	         SUBDBG("Unable to generate name %s:fan%i_input\n", hwmonx->d_name, i);
-	         err = PAPI_EINVAL;
-                 goto done_error;
+            closedir(d);
+            closedir(dir);
+	         return ( PAPI_EINVAL );
 	     }
 
 	     snprintf(units, PAPI_MIN_STR_LEN, "RPM");
@@ -341,13 +335,12 @@ generateEventList(char *base_dir)
 		      location);
          if (retlen <= 0 || PAPI_MAX_STR_LEN <= retlen) {
             SUBDBG("snprintf failed.\n");
-            err = PAPI_EINVAL;
-            goto done_error;
+            return PAPI_EINVAL;
          }
 
-	     err = insert_in_list(name,units,description,filename);
-	     if (err != PAPI_OK)
-		goto done_error;
+	     if (insert_in_list(name,units,description,filename)!=PAPI_OK) {
+	        goto done_error;
+	     }
 
 	     count++;
 
@@ -363,7 +356,7 @@ generateEventList(char *base_dir)
 done_error:
     closedir(d);
     closedir(dir);
-    return err;
+    return PAPI_ECMP;
 }
 
 static long long
@@ -769,7 +762,6 @@ papi_vector_t _coretemp_vector = {
 				 .fast_virtual_timer = 0,
 				 .attach = 0,
 				 .attach_must_ptrace = 0,
-				 .kernel_multiplex = 1,
 				 }
 	,
 

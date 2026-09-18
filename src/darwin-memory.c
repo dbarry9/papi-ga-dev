@@ -1,6 +1,5 @@
 #include <string.h>
 #include <errno.h>
-#include <sys/sysctl.h>
 
 #include "papi.h"
 #include "papi_internal.h"

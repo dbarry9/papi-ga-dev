@@ -99,24 +99,12 @@ static const arm_entry_t arm_n1_pe[]={
 	 .code = 0x14,
 	 .desc = "Level 1 instruction cache accesses"
 	},
-	{.name = "L1I_CACHE",
-	 .modmsk = ARMV9_ATTRS,
-	 .equiv = "L1I_CACHE",
-	 .code = 0x14,
-	 .desc = "Level 1 instruction cache accesses (deprecated)"
-	},
 	{.name = "L1D_CACHE_WB",
 	 .modmsk = ARMV8_ATTRS,
 	 .code = 0x15,
 	 .desc = "Level 1 data cache write-backs"
 	},
 	{.name = "L2D_CACHE_ACCESS",
-	 .modmsk = ARMV8_ATTRS,
-	 .code = 0x16,
-	 .equiv = "L2D_CACHE",
-	 .desc = "Level 2 data cache accesses (alias to L2D_CACHE)"
-	},
-	{.name = "L2D_CACHE",
 	 .modmsk = ARMV8_ATTRS,
 	 .code = 0x16,
 	 .desc = "Level 2 data cache accesses"

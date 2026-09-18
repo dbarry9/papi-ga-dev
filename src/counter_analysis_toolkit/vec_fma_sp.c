@@ -61,7 +61,7 @@ float test_sp_mac_VEC_FMA_12( uint64 iterations, int EventSet, FILE *fp ){
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             r0 = FMA_VEC_PS(r0,r7,r9);
@@ -139,7 +139,7 @@ float test_sp_mac_VEC_FMA_24( uint64 iterations, int EventSet, FILE *fp ){
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             r0 = FMA_VEC_PS(r0,r7,r9);
@@ -231,7 +231,7 @@ float test_sp_mac_VEC_FMA_48( uint64 iterations, int EventSet, FILE *fp ){
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             r0 = FMA_VEC_PS(r0,r7,r9);
@@ -326,18 +326,18 @@ void test_sp_VEC_FMA( int instr_per_loop, uint64 iterations, int EventSet, FILE 
 
     if ( instr_per_loop == 12 ) {
         sum += test_sp_mac_VEC_FMA_12( iterations, EventSet, fp );
-        scalar_sum += test_sp_scalar_VEC_FMA_12( iterations, EventSet, NULL );
+        scalar_sum += test_sp_scalar_VEC_FMA_12( iterations );
     }
     else if ( instr_per_loop == 24 ) {
         sum += test_sp_mac_VEC_FMA_24( iterations, EventSet, fp );
-        scalar_sum += test_sp_scalar_VEC_FMA_24( iterations, EventSet, NULL );
+        scalar_sum += test_sp_scalar_VEC_FMA_24( iterations );
     }
     else if ( instr_per_loop == 48 ) {
         sum += test_sp_mac_VEC_FMA_48( iterations, EventSet, fp );
-        scalar_sum += test_sp_scalar_VEC_FMA_48( iterations, EventSet, NULL );
+        scalar_sum += test_sp_scalar_VEC_FMA_48( iterations );
     }
 
     if( sum/4.0 != scalar_sum ) {
-        fprintf(stderr, "FMA: Inconsistent FLOP results detected! %f vs %f\n", sum/4.0, scalar_sum);
+        fprintf(stderr, "FMA: Inconsistent FLOP results detected!\n");
     }
 }

@@ -50,12 +50,6 @@ static int default_debug_handler( int errorCode );
 static long long handle_derived( EventInfo_t * evi, long long *from );
 
 /* Global definitions used by other files */
-int num_all_presets = 0;                            // total number of presets
-int _papi_hwi_start_idx[PAPI_NUM_COMP];             // first index for given component
-int first_comp_with_presets = -1;                   // track the first component that has presets
-int first_comp_preset_idx = PAPI_MAX_PRESET_EVENTS; // track the first non-perf_event component preset index
-int pe_disabled = 1;                                // track whether perf_event component is available
-
 int init_level = PAPI_NOT_INITED;
 int _papi_hwi_error_level = PAPI_QUIET;
 PAPI_debug_handler_t _papi_hwi_debug_handler = default_debug_handler;
@@ -89,6 +83,7 @@ static int num_native_chunks=0;
 
 char **_papi_errlist= NULL;
 static int num_error_chunks = 0;
+
 
 // pointer to event:mask string associated with last enum call to a components
 // will be NULL for non libpfm4 components
@@ -167,6 +162,72 @@ _papi_hwi_get_ntv_idx (unsigned int papi_evt_code) {
 	return result;
 }
 
+//
+// Check for the presence of a component name or pmu name in the event string.
+// If found check if it matches this component or one of the pmu's supported by this component.
+//
+// returns true if the event could be for this component and false if it is not for this component.
+//    if there is no component or pmu name then it could be for this component and returns true.
+//
+static int
+is_supported_by_component(int cidx, char *event_name) {
+	INTDBG("ENTER: cidx: %d, event_name: %s\n", cidx, event_name);
+	int i;
+	int component_name = 0;
+	int pmu_name = 0;
+	char *wptr = NULL;
+
+	// if event does not have a component name or pmu name, return to show it could be supported by this component
+	// when component and pmu names are not provided, we just have to call the components to see if they recognize the event
+	//
+
+	// look for component names first
+	if ((wptr = strstr(event_name, ":::")) != NULL) {
+		component_name = 1;
+	} else if ((wptr = strstr(event_name, "::")) != NULL) {
+		pmu_name = 1;
+	} else {
+		INTDBG("EXIT: No Component or PMU name in event string, try this component\n");
+		// need to force all components to be called to find owner of this event
+		// ????  can we assume the default pmu when no component or pmu name is provided ????
+		return 1;
+	}
+
+	// get a temporary copy of the component or pmu name
+	int name_len = wptr - event_name;
+	wptr = strdup(event_name);
+	wptr[name_len] = '\0';
+
+	// if a component name was found, compare it to the component name in the component info structure
+	if (component_name) {
+//		INTDBG("component_name: %s\n", _papi_hwd[cidx]->cmp_info.name);
+		if (strcmp (wptr, _papi_hwd[cidx]->cmp_info.name) == 0) {
+			free (wptr);
+			INTDBG("EXIT: Component %s supports this event\n", _papi_hwd[cidx]->cmp_info.name);
+			return 1;
+		}
+	}
+
+	// if a pmu name was found, compare it to the pmu name list if the component info structure (if there is one)
+	if (pmu_name) {
+		for ( i=0 ; i<PAPI_PMU_MAX ; i++) {
+			if (_papi_hwd[cidx]->cmp_info.pmu_names[i] == NULL) {
+				continue;
+			}
+//			INTDBG("pmu_name[%d]: %p (%s)\n", i, _papi_hwd[cidx]->cmp_info.pmu_names[i], _papi_hwd[cidx]->cmp_info.pmu_names[i]);
+			if (strcmp (wptr, _papi_hwd[cidx]->cmp_info.pmu_names[i]) == 0) {
+				INTDBG("EXIT: Component %s supports PMU %s and this event\n", _papi_hwd[cidx]->cmp_info.name, wptr);
+				free (wptr);
+				return 1;
+			}
+		}
+	}
+
+	free (wptr);
+	INTDBG("EXIT: Component does not support this event\n");
+	return 0;
+}
+
 /** @internal
  * @class _papi_hwi_prefix_component_name
  * @brief Prefixes a component's name to each of its events.
@@ -219,6 +280,33 @@ _papi_hwi_prefix_component_name( char *component_name, char *event_name, char *o
 
 	sprintf( out, "%s:::%s%c" , component_name, temp, '\0');
 	return (PAPI_OK);
+}
+
+/** @internal
+ *  @class _papi_hwi_strip_component_prefix
+ *  @brief Strip off cmp_name::: from an event name.
+ *
+ *  @param *event_name
+ *  @return Start of the component consumable portion of the name.
+ *
+ *  This function checks specifically for ':::' and will return the start of
+ *  event_name if it doesn't find the ::: .
+ */
+const char *_papi_hwi_strip_component_prefix(const char *event_name)
+{
+	const char *start = NULL;
+/* We assume ::: is the seperator
+ * eg:
+ * 		papi_component:::event_name
+ */
+
+	start = strstr( event_name, ":::" );
+	if ( start != NULL )
+		start+= 3; /* return the actual start of event_name */
+	else
+		start = event_name;
+
+	return (start);
 }
 
 /* find the papi event code (4000xxx) associated with the specified component, native event, and event name */
@@ -280,10 +368,6 @@ _papi_hwi_add_native_event(int cidx, int ntv_event, int ntv_idx, const char *eve
   _papi_native_events[num_native_events].ntv_idx=ntv_idx;
   if (event_name != NULL) {
 	  _papi_native_events[num_native_events].evt_name=strdup(event_name);
-          if (_papi_native_events[num_native_events].evt_name == NULL) {
-              new_native_event=PAPI_ENOMEM;
-              goto native_alloc_early_out;
-          }
   } else {
 	  _papi_native_events[num_native_events].evt_name=NULL;
   }
@@ -425,7 +509,6 @@ _papi_hwi_init_errors(void) {
 	/* 25 PAPI_ECMP_DISABLED */_papi_hwi_add_error("Component containing event is disabled");
     /* 26 PAPI_EDELAY_INIT */ _papi_hwi_add_error("Delayed initialization component");
     /* 27 PAPI_EMULPASS */ _papi_hwi_add_error("Event exists, but cannot be counted due to multiple passes required by hardware");
-    /* 28 PAPI_PARTIAL */ _papi_hwi_add_error("Component in use is partially disabled, see utils/papi_component_avail for more information.");
 }
 
 int
@@ -442,10 +525,10 @@ _papi_hwi_component_index( int event_code ) {
   int cidx;
   int event_index;
 
+  /* currently assume presets are for component 0 only */
   if (IS_PRESET(event_code)) {
      INTDBG("EXIT: Event %#x is a PRESET, assigning component %d\n", event_code,0);
-     event_index = event_code & PAPI_PRESET_AND_MASK;
-     return get_preset_cmp(&event_index);
+     return 0;
   }
 
   /* user defined events are treated like preset events (component 0 only) */
@@ -547,258 +630,6 @@ PAPIWARN( char *format, ... )
 		fprintf( stderr, "\n" );
 		va_end( args );
 	}
-}
-
-/* Construct fully qualified event names for the native events in a preset. */
-int
-construct_qualified_event(hwi_presets_t *prstPtr) {
-    int ret = PAPI_OK;
-    char *tmpEvent = NULL;
-    char *tmpQuals = NULL;
-
-    unsigned int j;
-    for(j = 0; j < prstPtr->count; j++ ) {
-        /* Construct event with all qualifiers. */
-        int k, strLenSum = 0, baseLen = 1+strlen(prstPtr->base_name[j]);
-        for (k = 0; k < prstPtr->num_quals; k++){
-            strLenSum += strlen(prstPtr->quals[k]);
-        }
-        strLenSum += baseLen;
-
-        /* Allocate space for constructing fully qualified event. */
-        tmpEvent = (char*)malloc(strLenSum*sizeof(char));
-        tmpQuals = (char*)malloc(strLenSum*sizeof(char));
-
-        if( NULL == tmpQuals || NULL == tmpEvent ) {
-            PAPIERROR("Could not allocate memory for tmpQuals and tmpEvents.\n");
-            ret = PAPI_ENOMEM;
-            goto done;
-        }
-
-        /* Print the basename to a string. */
-        int status = snprintf(tmpEvent, baseLen, "%s", prstPtr->base_name[j]);
-        if( status < 0 || status >= baseLen ) {
-            PAPIERROR("Event basename %s was truncated to %s in derived event %s",
-                       prstPtr->base_name[j], tmpEvent, prstPtr->symbol);
-            ret = PAPI_ENOMEM;
-            goto done;
-        }
-
-        /* Concatenate the qualifiers onto the string. */
-        status = 0;
-        for (k = 0; k < prstPtr->num_quals; k++) {
-            status = snprintf(tmpQuals, strLenSum, "%s%s", tmpEvent, prstPtr->quals[k]);
-            strcpy(tmpEvent, tmpQuals);
-        }
-        if( status < 0 || status >= strLenSum ) {
-            PAPIERROR("Event %s with qualifiers was truncated to %s in derived event %s",
-                      prstPtr->base_name[j], tmpEvent, prstPtr->symbol);
-            ret = PAPI_ENOMEM;
-            goto done;
-        }
-
-        /* Set the new name, which includes the qualifiers. */
-        free(prstPtr->name[j]);
-        prstPtr->name[j] = strdup(tmpEvent);
-        if (prstPtr->name[j] == NULL) {
-            PAPIERROR("Could not allocate memory for event name %s.", tmpEvent);
-            ret = PAPI_ENOMEM;
-            goto done;
-        }
-
-        /* Set the corresponding new code. */
-        int code_converted = (int) prstPtr->code[j];
-        status = _papi_hwi_native_name_to_code( tmpEvent, &code_converted );
-        if( PAPI_OK != status ) {
-            PAPIERROR("Failed to get code for native event %s used in derived event %s\n",
-                      tmpEvent, prstPtr->symbol);
-            ret = PAPI_EINVAL;
-        }
-    }
-
-done:
-    /* Free dynamically allocated memory. */
-    free(tmpQuals);
-    free(tmpEvent);
-    return ret;
-}
-
-/* Overwrite qualifiers in the preset struct based on those provided in the input string. */
-int
-overwrite_qualifiers(hwi_presets_t *prstPtr, const char *in, int is_preset) {
-    int ret = PAPI_OK;
-    char *qualDelim = ":";
-    char **providedQuals = NULL;
-    int numProvidedQuals = 0;
-    int k;
-    char *givenName = NULL;
-
-    providedQuals = (char**)calloc(prstPtr->num_quals, sizeof(char*));
-    if (providedQuals == NULL) {
-        PAPIERROR("Could not allocate %lu bytes of memory for providedQuals.",
-                  sizeof(char*)*(prstPtr->num_quals));
-        ret = PAPI_ENOMEM;
-        goto done;
-    }
-
-    for (k = 0; k < prstPtr->num_quals; k++){
-        providedQuals[k] = (char*)malloc(sizeof(char)*(PAPI_MAX_STR_LEN+1));
-
-        if (providedQuals[k] == NULL) {
-            PAPIERROR("Could not allocate %lu bytes of memory for providedQuals element.",
-                      sizeof(char)*(PAPI_MAX_STR_LEN+1));
-            ret = PAPI_ENOMEM;
-            goto done;
-        }
-    }
-
-    givenName = strdup(in);
-    if (givenName == NULL) {
-        PAPIERROR("Could not allocate memory for givenName %s.", in);
-        ret = PAPI_ENOMEM;
-        goto done;
-    }
-    char *qualName  = strtok(givenName, ":");
-    qualName = strtok(NULL, ":");
-
-    /* Skip past component prefix. */
-    if( !is_preset ) {
-        qualName = strtok(NULL, ":");
-    }
-
-    k = 0;
-    while( qualName != NULL ) {
-        size_t qualLen = 1+strlen(qualDelim)+strlen(qualName);
-        int status = snprintf(providedQuals[k], qualLen, "%s%s", qualDelim, qualName);
-        if( status < 0 || (size_t) status >= qualLen ) {
-            PAPIERROR("Failed to make copy of qualifier %s", qualName);
-            ret = PAPI_ENOMEM;
-            goto done;
-        }
-        k++;
-        numProvidedQuals++;
-        qualName = strtok(NULL, ":");
-    }
-
-    /* If a specific qualifier was provided, use that as the default value
-     * for the qualifier for the preset. To accomplish this, find the same
-     * qualifier in the preset struct's list, and overwrite it. */
-    int l, breakFlag = 0;
-    char *wholeQual1, *matchQual1, *wholeQual2, *matchQual2;
-
-    /* For each qualifier provided. */
-    for (k = 0; k < numProvidedQuals; k++) {
-        wholeQual1 = strdup(providedQuals[k]);
-        if (wholeQual1 == NULL) {
-            PAPIERROR("Insufficient memory to make copy of qualifiers %s",
-                      providedQuals[k]);
-            ret = PAPI_ENOMEM;
-            goto done;
-        }
-
-        matchQual1 = strtok(wholeQual1, "=");
-
-        /* For each qualifier in the preset struct. */
-        for (l = 0; l < prstPtr->num_quals; l++) {
-            wholeQual2 = strdup(prstPtr->quals[l]);
-            if (wholeQual2 == NULL) {
-                PAPIERROR("Insufficient memory to make copy of qualifiers %s",
-                          prstPtr->quals[l]);
-                free(wholeQual1);
-                ret = PAPI_ENOMEM;
-                goto done;
-            }
-
-            matchQual2 = strtok(wholeQual2, "=");
-            if( strcmp(matchQual1, matchQual2) == 0 ) {
-                breakFlag = 1;
-                free(wholeQual2);
-                break;
-            }
-            free(wholeQual2);
-        }
-        free(wholeQual1);
-
-        /* The qualifier was found, so overwrite it with the provided value. */
-        if( breakFlag ) {
-            free(prstPtr->quals[l]);
-            prstPtr->quals[l] = strdup(providedQuals[k]);
-	    if (prstPtr->quals[l] == NULL) {
-                PAPIERROR("Insufficient memory to make copy of qualifiers %s",
-                          providedQuals[k]);
-                ret = PAPI_ENOMEM;
-                goto done;
-            }
-            breakFlag = 0;
-        }
-    }
-
-done:
-    free(givenName);
-    for (k = 0; k < prstPtr->num_quals; k++){
-        free(providedQuals[k]);
-    }
-    free(providedQuals);
-
-    return ret;
-}
-
-/* Return index of first non-perf_event component's preset. */
-int
-get_first_cmp_preset_idx( void ) {
-
-    int cmpnt = first_comp_with_presets;
-    if( cmpnt < 0 ) {
-        return PAPI_EINVAL;
-    }
-
-    return first_comp_preset_idx;
-}
-
-/* Return index of component containing preset with given index. */
-int
-get_preset_cmp( int *index ) {
-
-    int sum = 0;
-    if(pe_disabled) {
-        sum += PAPI_MAX_PRESET_EVENTS;
-        if(*index < sum) {
-            return PAPI_EMISC;
-        }
-    }
-
-    int i;
-    for(i = 0; i < PAPI_NUM_COMP; ++i) {
-        sum += _papi_hwi_max_presets[i];
-        if(*index < sum) {
-            *index = *index - (sum - _papi_hwi_max_presets[i]);
-            return i;
-        }
-    }
-
-    /* If we did not find the component to which the preset belongs. */
-    return PAPI_EINVAL;
-}
-
-/* Return a pointer to preset which has given event code. */
-hwi_presets_t*
-get_preset( int event_code ) {
-    int preset_index = ( event_code & PAPI_PRESET_AND_MASK );
-    hwi_presets_t *_papi_hwi_list;
-
-    int i = get_preset_cmp(&preset_index);
-    if( i == PAPI_EINVAL ) {
-        return NULL;
-    }
-    if( i == PAPI_EMISC ) {
-        _papi_hwi_list = _papi_hwi_presets;
-    }
-    if( i >= 0 ) {
-        _papi_hwi_list = _papi_hwi_comp_presets[i];
-    }
-
-    assert(_papi_hwi_list != NULL);
-    return &_papi_hwi_list[preset_index];
 }
 
 static int
@@ -1271,17 +1102,11 @@ _papi_hwi_map_events_to_native( EventSetInfo_t *ESI)
 
 		/* If it's a preset */
 		if ( IS_PRESET(ESI->EventInfoArray[event].event_code) ) {
-
-            /* If it is a component preset, it will be in a separate array. */
-            hwi_presets_t *_preset_ptr = get_preset((int)ESI->EventInfoArray[event].event_code);
-            if( NULL == _preset_ptr ) {
-                INTDBG("EXIT: preset not found\n");
-                return;
-            }
+			preset_index = ( int ) ESI->EventInfoArray[event].event_code & PAPI_PRESET_AND_MASK;
 
 			/* walk all sub-events in the preset */
 			for( k = 0; k < PAPI_EVENTS_IN_DERIVED_EVENT; k++ ) {
-				nevt = _preset_ptr->code[k];
+				nevt = _papi_hwi_presets[preset_index].code[k];
 				if ( nevt == PAPI_NULL ) {
 					break;
 				}
@@ -1555,23 +1380,17 @@ _papi_hwi_add_event( EventSetInfo_t * ESI, int EventCode )
     if ( !_papi_hwi_is_sw_multiplex( ESI ) ) {
 
        /* Handle preset case */
-       if ( IS_PRESET(EventCode) ) { /* begin preset case */
+       if ( IS_PRESET(EventCode) ) {
 	  int count;
 	  int preset_index = EventCode & ( int ) PAPI_PRESET_AND_MASK;
 
 	  /* Check if it's within the valid range */
-	  if ( ( preset_index < 0 ) || ( preset_index >= num_all_presets ) ) {
+	  if ( ( preset_index < 0 ) || ( preset_index >= PAPI_MAX_PRESET_EVENTS ) ) {
 	     return PAPI_EINVAL;
 	  }
 
-      hwi_presets_t *_preset_ptr = get_preset(EventCode);
-      if( NULL == _preset_ptr ) {
-	      INTDBG("EXIT: preset not found\n");
-	      return PAPI_ENOEVNT;
-      }
-
 	  /* count the number of native events in this preset */
-	  count = ( int ) _preset_ptr->count;
+	  count = ( int ) _papi_hwi_presets[preset_index].count;
 
 	  /* Check if event exists */
 	  if ( !count ) {
@@ -1584,7 +1403,7 @@ _papi_hwi_add_event( EventSetInfo_t * ESI, int EventCode )
 	     for( i = 0; i < count; i++ ) {
 		for( j = 0; j < ESI->overflow.event_counter; j++ ) {
 		  if ( ESI->overflow.EventCode[j] ==(int)
-			( _preset_ptr->code[i] ) ) {
+			( _papi_hwi_presets[preset_index].code[i] ) ) {
 		      return PAPI_ECNFLCT;
 		   }
 		}
@@ -1594,7 +1413,7 @@ _papi_hwi_add_event( EventSetInfo_t * ESI, int EventCode )
 	  /* Try to add the preset. */
 
 	  remap = add_native_events( ESI,
-				     _preset_ptr->code,
+				     _papi_hwi_presets[preset_index].code,
 				     count, &ESI->EventInfoArray[thisindex] );
 	  if ( remap < 0 ) {
 	     return remap;
@@ -1604,15 +1423,14 @@ _papi_hwi_add_event( EventSetInfo_t * ESI, int EventCode )
 	     ESI->EventInfoArray[thisindex].event_code =
                                   ( unsigned int ) EventCode;
 	     ESI->EventInfoArray[thisindex].derived =
-				  _preset_ptr->derived_int;
+				  _papi_hwi_presets[preset_index].derived_int;
 	     ESI->EventInfoArray[thisindex].ops =
-				  _preset_ptr->postfix;
+				  _papi_hwi_presets[preset_index].postfix;
              ESI->NumberOfEvents++;
 	     _papi_hwi_map_events_to_native( ESI );
 
 	  }
        }
-
        /* Handle adding Native events */
        else if ( IS_NATIVE(EventCode) ) {
 
@@ -2157,46 +1975,6 @@ _papi_hwi_init_global( int PE_OR_PEU )
 	return PAPI_OK;
 }
 
-
-/*
- * Routine that initializes the presets for all components other
- * than perf_event. Ignore perf_event component.
- */
-int
-_papi_hwi_init_global_presets( void )
-{
-    int retval = PAPI_OK, i = 0;
-
-    /* Determine whether or not perf_event is available. */
-    while ( _papi_hwd[i] ) {
-        if (strcmp(_papi_hwd[i]->cmp_info.name, "perf_event") == 0) {
-            pe_disabled = 0;
-            break;
-        }
-        i++;
-    }
-
-    if( pe_disabled ) {
-        num_all_presets = PAPI_MAX_PRESET_EVENTS;
-    }
-
-    i = 0;
-    while ( _papi_hwd[i] ) {
-        if (strcmp(_papi_hwd[i]->cmp_info.name, "perf_event") != 0) {
-            /* Only set the first non-perf_event component with presets once. */
-            if ( -1 == first_comp_with_presets && _papi_hwi_max_presets[i] > 0 ) {
-                first_comp_with_presets = i;
-            }
-        }
-
-        _papi_hwi_start_idx[i] = num_all_presets;
-        num_all_presets += _papi_hwi_max_presets[i];
-        i++;
-    }
-    return retval;
-}
-
-
 /* Machine info struct initialization using defaults */
 /* See _papi_mdi definition in papi_internal.h       */
 
@@ -2514,87 +2292,47 @@ _papi_hwi_get_preset_event_info( int EventCode, PAPI_event_info_t * info )
 {
 	INTDBG("ENTER: EventCode: %#x, info: %p\n", EventCode, info);
 
+	int i = EventCode & PAPI_PRESET_AND_MASK;
 	unsigned int j;
-    hwi_presets_t *_preset_ptr = get_preset(EventCode);
-    if( NULL == _preset_ptr ) {
-        INTDBG("EXIT: preset not found\n");
-        return PAPI_ENOEVNT;
-    }
 
-	if ( _preset_ptr->symbol ) {	/* if the event is in the preset table */
+	if ( _papi_hwi_presets[i].symbol ) {	/* if the event is in the preset table */
       // since we are setting the whole structure to zero the strncpy calls below will 
       // be leaving NULL terminates strings as long as they copy 1 less byte than the 
       // buffer size of the field.
-
-	   INTDBG("ENTER: Configuring: %s\n", _preset_ptr->symbol);
-
 	   memset( info, 0, sizeof ( PAPI_event_info_t ) );
 
-		/* set up eventcode and name */
 	   info->event_code = ( unsigned int ) EventCode;
-	   strncpy( info->symbol, _preset_ptr->symbol,
-	            sizeof(info->symbol)-1);
+	   strncpy( info->symbol, _papi_hwi_presets[i].symbol,
+	    sizeof(info->symbol)-1);
 
-		/* set up short description, if available */
-	   if ( _preset_ptr->short_descr != NULL ) {
-	      strncpy( info->short_descr, _preset_ptr->short_descr,
+	   if ( _papi_hwi_presets[i].short_descr != NULL )
+	      strncpy( info->short_descr, _papi_hwi_presets[i].short_descr,
 		          sizeof ( info->short_descr )-1 );
-	   }
 
-		/* set up long description, if available */
-	   if ( _preset_ptr->long_descr != NULL ) {
-	      strncpy( info->long_descr,  _preset_ptr->long_descr,
+	   if ( _papi_hwi_presets[i].long_descr != NULL )
+	      strncpy( info->long_descr,  _papi_hwi_presets[i].long_descr,
 		          sizeof ( info->long_descr )-1 );
-	   }
 
-	   info->event_type = _preset_ptr->event_type;
-	   info->count = _preset_ptr->count;
+	   info->event_type = _papi_hwi_presets[i].event_type;
+	   info->count = _papi_hwi_presets[i].count;
 
-
-		/* set up if derived event */
-	   _papi_hwi_derived_string( _preset_ptr->derived_int,
+	   _papi_hwi_derived_string( _papi_hwi_presets[i].derived_int,
 				     info->derived,  sizeof ( info->derived )-1 );
 
-	   if ( _preset_ptr->postfix != NULL ) {
-	      strncpy( info->postfix, _preset_ptr->postfix,
+	   if ( _papi_hwi_presets[i].postfix != NULL )
+	      strncpy( info->postfix, _papi_hwi_presets[i].postfix,
 		          sizeof ( info->postfix )-1 );
-	   }
 
 	   for(j=0;j < info->count; j++) {
-
-		/* make sure the name exists before trying to copy it */
-		/* that can happen if an event is in the definition in */
-		/* papi_events.csv but the event is unsupported on the cpu */
-		/* ideally that should never happen, but also ideally */
-		/* we wouldn't segfault if it does */
-
-	      if (_preset_ptr->name[j]==NULL) {
-		INTDBG("ERROR in event definition of %s\n", _preset_ptr->symbol);
-			   return PAPI_ENOEVNT;
-		}
-		else {
-			info->code[j]=_preset_ptr->code[j];
-			strncpy(info->name[j], _preset_ptr->name[j],
-				sizeof(info->name[j])-1);
-		}
+	      info->code[j]=_papi_hwi_presets[i].code[j];
+	      strncpy(info->name[j], _papi_hwi_presets[i].name[j],
+	      sizeof(info->name[j])-1);
 	   }
 
-	   if ( _preset_ptr->note != NULL ) {
-	      strncpy( info->note, _preset_ptr->note,
+	   if ( _papi_hwi_presets[i].note != NULL ) {
+	      strncpy( info->note, _papi_hwi_presets[i].note,
 		          sizeof ( info->note )-1 );
 	   }
-
-       /* Copy the qualifiers and their associated descriptions into
-        * the info struct. */
-       int k;
-	   for( k = 0; k < _preset_ptr->num_quals; ++k ) {
-	      strncpy( info->quals[k], _preset_ptr->quals[k],
-		          sizeof ( info->quals[k] )-1 );
-	      strncpy( info->quals_descrs[k], _preset_ptr->quals_descrs[k],
-		          sizeof ( info->quals_descrs[k] )-1 );
-	   }
-       info->num_quals = _preset_ptr->num_quals;
-       info->component_index = _preset_ptr->component_index;
 
 	   return PAPI_OK;
 	} else {
@@ -2697,26 +2435,6 @@ _papi_hwi_query_native_event( unsigned int EventCode )
    INTDBG("EXIT: ret: %d\n", ret);
    return (ret);
 }
-/** @internal
- *  @class _papi_hwi_obtain_prefix
- *  @brief Collect the component or pmu prefix name that should be appended to the beginning
- *         of a native event.
- *
- *  @param *full_event_name
- *    Event name provided by the user.
- *  @param *prefix
- *    Stores the component or pmu prefix name.
- */
-void _papi_hwi_obtain_prefix(const char *full_event_name, char *prefix)
-{
-    // Obtain the component or pmu prefix name.
-    int i;
-    for (i = 0; full_event_name[i] != ':'; i++) {
-        prefix[i] = full_event_name[i];
-    }
-
-    return;
-}
 
 /* Converts an ASCII name into a native event code usable by other routines
    Returns code = 0 and PAPI_OK if name not found.
@@ -2725,143 +2443,94 @@ int
 _papi_hwi_native_name_to_code( const char *in, int *out )
 {
 	INTDBG("ENTER: in: %s, out: %p\n", in, out);
-	if (in == NULL) {
-		INTDBG("EXIT: The first argument 'in' is NULL.\n");
-		return PAPI_EINVAL;
-	}
 
-	char *full_event_name = strdup(in);
-	if (full_event_name == NULL) {
+	int retval = PAPI_ENOEVNT;
+	char name[PAPI_HUGE_STR_LEN];	/* make sure it's big enough */
+
+	unsigned int i;
+	int cidx;
+	char *full_event_name;
+
+	if (in == NULL) {
 		INTDBG("EXIT: PAPI_EINVAL\n");
 		return PAPI_EINVAL;
 	}
 
-	int cidx, retval = PAPI_ENOEVNT;
-	const char *event_name_to_code_input;
-	// Non-cpu components i.e. appio, cuda, or rocp_sdk.
-	// For non-cpu components we are looking for a component prefix name
-	// i.e. cuda::: or appio:::.
-	if (strstr(full_event_name, ":::") != NULL) {
-		char component_prefix_name[PAPI_MAX_STR_LEN] = { 0 };
-		_papi_hwi_obtain_prefix(full_event_name, component_prefix_name);
+	full_event_name = strdup(in);
 
-		cidx = PAPI_get_component_index(component_prefix_name);
-		if (cidx < 0) {
-			INTDBG("EXIT: Component %s either does not exist or is not set.\n", component_prefix_name);
-			return cidx;
+	in = _papi_hwi_strip_component_prefix(in);
+
+	// look in each component
+	for(cidx=0; cidx < papi_num_components; cidx++) {
+
+		if (_papi_hwd[cidx]->cmp_info.disabled &&
+            _papi_hwd[cidx]->cmp_info.disabled != PAPI_EDELAY_INIT)
+            continue;
+
+		// if this component does not support the pmu
+		// which defines this event, no need to call it
+		if (is_supported_by_component(cidx, full_event_name) == 0) {
+			continue;
 		}
 
-		// Remove 'component_prefix_name:::' from the user provided event
-		// i.e. 'cuda:::dram__bytes' to 'dram__bytes'.
-		event_name_to_code_input = full_event_name + strlen(component_prefix_name) + strlen(":::");
-	}
-	// Cpu components i.e. perf_event and perf_event_uncore.
-	// For cpu components we are looking for pmu prefix names instead of component prefix names
-	// i.e. perf::.
-	else if (strstr(full_event_name, "::") != NULL) {
-		char pmu_prefix_name[PAPI_MAX_STR_LEN] = { 0 };
-		_papi_hwi_obtain_prefix(full_event_name, pmu_prefix_name);
+		INTDBG("cidx: %d, name: %s, event: %s\n",
+			cidx, _papi_hwd[cidx]->cmp_info.name, in);
 
-		char *cpu_components_with_pmus[PAPI_MIN_STR_LEN] = {"perf_event", "perf_event_uncore", NULL};
-		int cpu_idx, found = 0;
-		for (cpu_idx = 0; cpu_components_with_pmus[cpu_idx] != NULL; cpu_idx++) {
-			cidx = PAPI_get_component_index(cpu_components_with_pmus[cpu_idx]);
-			if (cidx < 0) {
-				INTDBG("EXIT: Component %s either does not exist or is not set.\n", _papi_hwd[cidx]->cmp_info.name);
-				return cidx;
+		// show that we do not have an event code yet
+		// (the component may create one and update this info)
+		// this also clears any values left over from a previous call
+		_papi_hwi_set_papi_event_code(-1, -1);
+
+
+		// if component has a ntv_name_to_code function, use it to get event code
+		if (_papi_hwd[cidx]->ntv_name_to_code != NULL) {
+			// try and get this events event code
+			retval = _papi_hwd[cidx]->ntv_name_to_code( in, ( unsigned * ) out );
+			if (retval==PAPI_OK) {
+				*out = _papi_hwi_native_to_eventcode(cidx, *out, -1, in);
+				free (full_event_name);
+				INTDBG("EXIT: PAPI_OK  event: %s code: %#x\n", in, *out);
+				return PAPI_OK;
+			}
+		} else {
+			// force the code through the work around
+			retval = PAPI_ECMP;
+		}
+
+		/* If not implemented, work around */
+		if ( retval==PAPI_ECMP) {
+			i = 0;
+			retval = _papi_hwd[cidx]->ntv_enum_events( &i, PAPI_ENUM_FIRST );
+			if (retval != PAPI_OK) {
+				free (full_event_name);
+				INTDBG("EXIT: retval: %d\n", retval);
+				return retval;
 			}
 
-			int pmu_idx;
-			for (pmu_idx = 0; pmu_idx < PAPI_PMU_MAX; pmu_idx++) {
-				if (_papi_hwd[cidx]->cmp_info.pmu_names[pmu_idx] == NULL) {
-					continue;
-				}
+//			_papi_hwi_lock( INTERNAL_LOCK );
 
-				if (strcmp(pmu_prefix_name, _papi_hwd[cidx]->cmp_info.pmu_names[pmu_idx]) == 0) {
-					INTDBG("EXIT: Component %s supports PMU %s and the event %s.\n", _papi_hwd[cidx]->cmp_info.name, pmu_prefix_name, full_event_name);
-					found = 1;
+			do {
+				// save event code so components can get it with call to: _papi_hwi_get_papi_event_code()
+				_papi_hwi_set_papi_event_code(i, 0);
+				retval = _papi_hwd[cidx]->ntv_code_to_name(i, name, sizeof(name));
+				/* printf("%#x\nname =|%s|\ninput=|%s|\n", i, name, in); */
+				if ( retval == PAPI_OK && in != NULL) {
+					if ( strcasecmp( name, in ) == 0 ) {
+						*out = _papi_hwi_native_to_eventcode(cidx, i, -1, name);
+						free (full_event_name);
+						INTDBG("EXIT: PAPI_OK, event: %s, code: %#x\n", in, *out);
+						return PAPI_OK;
+					}
+					retval = PAPI_ENOEVNT;
+				} else {
+					*out = 0;
+					retval = PAPI_ENOEVNT;
 					break;
 				}
-			}
-			if (found) {
-				break;
-			}
+			} while ( ( _papi_hwd[cidx]->ntv_enum_events( &i, PAPI_ENUM_EVENTS ) == PAPI_OK ) );
+
+//			_papi_hwi_unlock( INTERNAL_LOCK );
 		}
-		event_name_to_code_input = full_event_name;
-	}
-	// A component prefix name nor a pmu prefix name was given.
-	// As the perf_event component is the only component that can have events
-	// without a prefix, we only will check inside this component if the event
-	// will exist.
-	else {
-		cidx = PAPI_get_component_index("perf_event");
-		if (cidx < 0) {
-			INTDBG("EXIT: The perf_event component is not set.\n");
-			return cidx;
-		}
-		event_name_to_code_input = full_event_name;
-	}
-
-	if (_papi_hwd[cidx]->cmp_info.disabled &&
-	    _papi_hwd[cidx]->cmp_info.disabled != PAPI_EDELAY_INIT) {
-		INTDBG("Component %s at index %d is currently disabled.\n", _papi_hwd[cidx]->cmp_info.name, cidx);
-		return _papi_hwd[cidx]->cmp_info.disabled;
-	}
-
-	// Show that we do not have an event code yet.
-	// The component may create one and update this info.
-	// This also clears any values left over from a previous call.
-	_papi_hwi_set_papi_event_code(-1, -1);
-
-	// The component has a ntv_name_to_code function utilize it to get the event code.
-	if (_papi_hwd[cidx]->ntv_name_to_code != NULL) {
-		retval = _papi_hwd[cidx]->ntv_name_to_code( event_name_to_code_input, ( unsigned * ) out );
-		if (retval == PAPI_OK) {
-			*out = _papi_hwi_native_to_eventcode(cidx, *out, -1, event_name_to_code_input);
-			free (full_event_name);
-			INTDBG("EXIT: PAPI_OK  event: %s code: %#x\n", event_name_to_code_input, *out);
-			return PAPI_OK;
-		}
-	}
-	else {
-		retval = PAPI_ECMP;
-	}
-
-	// The component does not have a ntv_name_to_code function so utilize ntv_enum_events.
-	if (retval == PAPI_ECMP) {
-		// Make sure it is big enough
-		char name[PAPI_HUGE_STR_LEN];
-
-		unsigned int i = 0;
-		retval = _papi_hwd[cidx]->ntv_enum_events( &i, PAPI_ENUM_FIRST );
-		if (retval != PAPI_OK) {
-			free (full_event_name);
-			INTDBG("EXIT: retval: %d\n", retval);
-			return retval;
-		}
-
-//		_papi_hwi_lock( INTERNAL_LOCK );
-
-		do {
-			// Save event code so components can get it with call to: _papi_hwi_get_papi_event_code().
-			_papi_hwi_set_papi_event_code(i, 0);
-			retval = _papi_hwd[cidx]->ntv_code_to_name(i, name, sizeof(name));
-			if ( retval == PAPI_OK && event_name_to_code_input != NULL) {
-				if ( strcasecmp( name, event_name_to_code_input ) == 0 ) {
-					*out = _papi_hwi_native_to_eventcode(cidx, i, -1, name);
-					free (full_event_name);
-					INTDBG("EXIT: PAPI_OK, event: %s, code: %#x\n", event_name_to_code_input, *out);
-					return PAPI_OK;
-				}
-				retval = PAPI_ENOEVNT;
-			} else {
-				*out = 0;
-				retval = PAPI_ENOEVNT;
-				break;
-			}
-		} while ( ( _papi_hwd[cidx]->ntv_enum_events( &i, PAPI_ENUM_EVENTS ) == PAPI_OK ) );
-
-//		_papi_hwi_unlock( INTERNAL_LOCK );
 	}
 
 	free (full_event_name);

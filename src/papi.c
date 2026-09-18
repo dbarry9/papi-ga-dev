@@ -586,10 +586,6 @@ _rate_calls( float *real_time, float *proc_time, int *events,
 
 extern hwi_presets_t user_defined_events[PAPI_MAX_USER_EVENTS];
 extern int user_defined_events_count;
-extern int num_all_presets;
-extern int _papi_hwi_start_idx[PAPI_NUM_COMP];
-extern int first_comp_with_presets;
-extern int first_comp_preset_idx;
 
 
 #ifdef DEBUG
@@ -1049,18 +1045,6 @@ PAPI_library_init( int version )
 
 	int tmp = 0;
 
-    char *disabledComps = getenv("PAPI_DISABLE_COMPONENTS");
-    if (disabledComps != NULL) {
-        char *penv = strdup(disabledComps);
-        char *p;
-        for (p = strtok (penv, ",:"); p != NULL; p = strtok (NULL, ",:")) {
-            (void) PAPI_disable_component_by_name(p);
-        }
-        free(penv);
-    } else {
-        APIDBG("PAPI_library_init: getenv(PAPI_DISABLE_COMPONENTS) was not set.\n");
-    }
-
 	/* This is a poor attempt at a lock. 
 	   For 3.1 this should be replaced with a 
 	   true UNIX semaphore. We cannot use PAPI
@@ -1202,17 +1186,6 @@ PAPI_library_init( int version )
 		_in_papi_library_init_cnt--;
 		papi_return( init_retval );
 	}
-
-
-    /* Initialize component preset globals. */
-
-    tmp = _papi_hwi_init_global_presets();
-    if ( tmp ) {
-        init_retval = tmp;
-        _papi_hwi_shutdown_global_internal(  );
-        _in_papi_library_init_cnt--;
-        papi_return( init_retval );
-    }
 	
 	init_level = PAPI_LOW_LEVEL_INITED;
 	_in_papi_library_init_cnt--;
@@ -1267,16 +1240,10 @@ PAPI_query_event( int EventCode )
     APIDBG( "Entry: EventCode: %#x\n", EventCode);
 	if ( IS_PRESET(EventCode) ) {
 		EventCode &= PAPI_PRESET_AND_MASK;
-		if ( EventCode < 0 || EventCode >= num_all_presets )
+		if ( EventCode < 0 || EventCode >= PAPI_MAX_PRESET_EVENTS )
 			papi_return( PAPI_ENOTPRESET );
 
-        int preset_index = EventCode;
-        int compIdx = get_preset_cmp(&preset_index);
-        if( compIdx < 0 ) {
-            return PAPI_ENOEVNT;
-        }
-
-		if ( _papi_hwi_comp_presets[compIdx][preset_index].count )
+		if ( _papi_hwi_presets[EventCode].count )
 		        papi_return (PAPI_OK);
 		else
 			return PAPI_ENOEVNT;
@@ -1429,9 +1396,8 @@ PAPI_get_event_info( int EventCode, PAPI_event_info_t *info )
 
 	if ( IS_PRESET(EventCode) ) {
            i = EventCode & PAPI_PRESET_AND_MASK;
-	   if ( i >= num_all_presets ) {
+	   if ( i >= PAPI_MAX_PRESET_EVENTS )
 	      papi_return( PAPI_ENOTPRESET );
-       }
 	   papi_return( _papi_hwi_get_preset_event_info( EventCode, info ) );
 	}
 
@@ -1506,44 +1472,22 @@ PAPI_event_code_to_name( int EventCode, char *out )
 	if ( out == NULL )
 		papi_return( PAPI_EINVAL );
 
-	int compIdx;
 	if ( IS_PRESET(EventCode) ) {
 		EventCode &= PAPI_PRESET_AND_MASK;
-		if ( EventCode < 0 || EventCode >= num_all_presets )
+		if ( EventCode < 0 || EventCode >= PAPI_MAX_PRESET_EVENTS )
 			papi_return( PAPI_ENOTPRESET );
 
-        int preset_index = EventCode;
-        compIdx = get_preset_cmp(&preset_index);
-        if( compIdx < 0 ) {
-            return PAPI_ENOEVNT;
-        }
-        if ( _papi_hwd[compIdx]->cmp_info.disabled == PAPI_EDELAY_INIT ) {
-            unsigned int junk;
-            _papi_hwd[compIdx]->ntv_enum_events(&junk, PAPI_ENUM_FIRST);
-        }
-
-
-		if (_papi_hwi_comp_presets[compIdx][preset_index].symbol == NULL )
+		if (_papi_hwi_presets[EventCode].symbol == NULL )
 			papi_return( PAPI_ENOTPRESET );
 
-		strncpy( out, _papi_hwi_comp_presets[compIdx][preset_index].symbol, PAPI_MAX_STR_LEN-1 );
+		strncpy( out, _papi_hwi_presets[EventCode].symbol, PAPI_MAX_STR_LEN-1 );
 		out[PAPI_MAX_STR_LEN-1] = '\0';
 		papi_return( PAPI_OK );
 	}
 
 	if ( IS_NATIVE(EventCode) ) {
-		compIdx = _papi_hwi_component_index(EventCode);
-		if (compIdx < 0 ) {
-			return PAPI_ENOCMP;
-		}
-
-		int stringLength = PAPI_MAX_STR_LEN;
-		if (strcmp(_papi_hwd[compIdx]->cmp_info.name, "cuda") == 0) {
-			stringLength = PAPI_2MAX_STR_LEN;
-		}
-
 		return ( _papi_hwi_native_code_to_name
-				 ( ( unsigned int ) EventCode, out, stringLength ) );
+				 ( ( unsigned int ) EventCode, out, PAPI_MAX_STR_LEN ) );
 	}
 
 	if ( IS_USER_DEFINED(EventCode) ) {
@@ -1625,71 +1569,14 @@ PAPI_event_name_to_code( const char *in, int *out )
 	/* All presets start with "PAPI_" so no need to */
 	/* do an exhaustive search if that's not there  */
 	if (strncmp(in, "PAPI_", 5) == 0) {
-
-       /* Split event name into base name and qualifier. */
-       int preset_idx = -1;
-       char *evt_name_copy = strdup(in);
-       if( NULL == evt_name_copy ) {
-           PAPIERROR("Failed to allocate space for preset buffer.\n");
-		   papi_return( PAPI_EINVAL );
-       }
-
-       char *evt_base_name = strtok(evt_name_copy, ":");
-       if( NULL == evt_base_name ) {
-           PAPIERROR("Failed to allocate space for base name of native event used in preset.\n");
-           free(evt_name_copy);
-		   papi_return( PAPI_EINVAL );
-       }
-
-       /* Since the preset could live inside of either the CPU or component preset list,
-        * set the list pointer appropriately. */
-       hwi_presets_t *_papi_hwi_list = NULL;
-
-       /* Now check the component presets. */
-       int cmpnt, breakFlag = 0;
-       for(cmpnt = 0; cmpnt < PAPI_NUM_COMP; cmpnt++ ) {
-           _papi_hwi_list = _papi_hwi_comp_presets[cmpnt];
-           for(i = 0; i < _papi_hwi_max_presets[cmpnt]; i++ ) {
-               if ( ( _papi_hwi_list[i].symbol )
-                 && ( strcasecmp( _papi_hwi_list[i].symbol, evt_base_name ) == 0) ) {
-                     *out = ( int ) ( (i + _papi_hwi_start_idx[cmpnt]) | PAPI_PRESET_MASK );
-
-                     if ( _papi_hwd[cmpnt]->cmp_info.disabled == PAPI_EDELAY_INIT ) {
-                         unsigned int junk;
-                         _papi_hwd[cmpnt]->ntv_enum_events(&junk, PAPI_ENUM_FIRST);
-                     }
-
-                     preset_idx = i;
-                     breakFlag = 1;
-                     break;
-               }
-           }
-           /* Checks whether preset was found. */
-           if( breakFlag ) {
-               break;
-           }
-       }
-
-       free(evt_name_copy);
-
-       /* User may have provided an invalid event name. */
-       if( NULL != _papi_hwi_list ) {
-
-           /* Keep track of all qualifiers provided by the user. */
-           hwi_presets_t *prstPtr = &_papi_hwi_list[preset_idx];
-           int status = overwrite_qualifiers(prstPtr, in, 1);
-           if( status < 0 ) {
-               papi_return( PAPI_ENOMEM );
-           }
-
-           status = construct_qualified_event(prstPtr);
-           if( status < 0 ) {
-               papi_return( status );
-           }
-
-           papi_return( PAPI_OK );
-       }
-    }
+	   for(i = 0; i < PAPI_MAX_PRESET_EVENTS; i++ ) {
+	      if ( ( _papi_hwi_presets[i].symbol )
+		   && ( strcasecmp( _papi_hwi_presets[i].symbol, in ) == 0) ) {
+		 *out = ( int ) ( i | PAPI_PRESET_MASK );
+		 papi_return( PAPI_OK );
+	      }
+	   }
+	}
 
 	// check to see if it is a user defined event
 	for ( i=0; i < user_defined_events_count ; i++ ) {
@@ -1777,9 +1664,34 @@ PAPI_event_name_to_code( const char *in, int *out )
  *	The following values are implemented for preset events
  *	<ul>
  *         <li> PAPI_PRESET_ENUM_AVAIL -- enumerate only available presets
- *         <li> PAPI_PRESET_ENUM_CPU   -- enumerate CPU preset events
- *         <li> PAPI_PRESET_ENUM_CPU_AVAIL -- enumerate available CPU preset events
- *         <li> PAPI_PRESET_ENUM_FIRST_COMP -- enumerate first component preset event
+ *         <li> PAPI_PRESET_ENUM_MSC   -- Miscellaneous preset events
+ *         <li> PAPI_PRESET_ENUM_INS   -- Instruction related preset events
+ *         <li> PAPI_PRESET_ENUM_IDL   -- Stalled or Idle preset events
+ *         <li> PAPI_PRESET_ENUM_BR    -- Branch related preset events
+ *         <li> PAPI_PRESET_ENUM_CND   -- Conditional preset events
+ *         <li> PAPI_PRESET_ENUM_MEM   -- Memory related preset events
+ *         <li> PAPI_PRESET_ENUM_CACH  -- Cache related preset events
+ *         <li> PAPI_PRESET_ENUM_L1    -- L1 cache related preset events
+ *         <li> PAPI_PRESET_ENUM_L2    -- L2 cache related preset events
+ *         <li> PAPI_PRESET_ENUM_L3    -- L3 cache related preset events
+ *         <li> PAPI_PRESET_ENUM_TLB   -- Translation Lookaside Buffer events
+ *         <li> PAPI_PRESET_ENUM_FP    -- Floating Point related preset events
+ *	</ul>
+ *
+ *	@par ITANIUM Modifiers
+ *	The following values are implemented for modifier on Itanium: 
+ *	<ul>
+ *	   <li> PAPI_NTV_ENUM_IARR - Enumerate IAR (instruction address ranging) events 
+ *	   <li> PAPI_NTV_ENUM_DARR - Enumerate DAR (data address ranging) events 
+ *	   <li> PAPI_NTV_ENUM_OPCM - Enumerate OPC (opcode matching) events 
+ *	   <li> PAPI_NTV_ENUM_IEAR - Enumerate IEAR (instr event address register) events 
+ *	   <li> PAPI_NTV_ENUM_DEAR - Enumerate DEAR (data event address register) events
+ *	</ul>
+ *
+ *	@par POWER Modifiers
+ *	The following values are implemented for POWER
+ *	<ul>
+ *	   <li> PAPI_NTV_ENUM_GROUPS - Enumerate groups to which an event belongs
  *	</ul>
  *
  *	@see PAPI @n
@@ -1803,110 +1715,31 @@ PAPI_enum_event( int *EventCode, int modifier )
 	cidx = _papi_hwi_component_index( *EventCode );
 	if (cidx < 0) return PAPI_ENOCMP;
 
-    /* check to see if a valid modifier is provided */
-    if (modifier != PAPI_ENUM_EVENTS &&
-        modifier != PAPI_ENUM_FIRST &&
-        modifier != PAPI_ENUM_ALL &&
-        modifier != PAPI_PRESET_ENUM_AVAIL && 
-        modifier != PAPI_PRESET_ENUM_CPU && 
-        modifier != PAPI_PRESET_ENUM_CPU_AVAIL && 
-        modifier != PAPI_PRESET_ENUM_FIRST_COMP && 
-        modifier != PAPI_NTV_ENUM_UMASKS && 
-        modifier != PAPI_NTV_ENUM_UMASK_COMBOS)
-        {
-            return PAPI_EINVAL;
-        }
+	/* Do we handle presets in componets other than CPU? */
+	/* if (( IS_PRESET(i) ) && cidx > 0 )) return PAPI_ENOCMP; */
 		
-    /* If it is a component preset, it will be in a separate array. */
-    int preset_index;
-    hwi_presets_t *_papi_hwi_list;
-
-    if ( IS_PRESET(i) ) {
-
-        /* Set to the first preset. */
-        if ( modifier == PAPI_ENUM_FIRST ) {
-            *EventCode = ( int ) PAPI_PRESET_MASK;
-            APIDBG("EXIT: *EventCode: %#x\n", *EventCode);
-            return ( PAPI_OK );
-        }
-
-        i &= PAPI_PRESET_AND_MASK;
-
-        /* Iterate over all or all available presets. */
-        if ( modifier == PAPI_ENUM_EVENTS || modifier == PAPI_PRESET_ENUM_AVAIL ) {
-
-            /* NULL pointer used to terminate the list. However, now we have
-             * more presets that exist beyond the bounds of the original
-             * array, so skip over the NULL entries. */
-            do {
-                cidx = _papi_hwi_component_index( (int)(i | PAPI_PRESET_MASK) );
-                if (cidx < 0) return PAPI_ENOCMP;
-                if ( _papi_hwd[cidx]->cmp_info.disabled == PAPI_EDELAY_INIT ) {
-                    APIDBG("Triggered forced initialization of component ID=%d.\n", cidx);
-                    unsigned int junk;
-                    _papi_hwd[cidx]->ntv_enum_events(&junk, PAPI_ENUM_FIRST);
-                }
-
-                if ( ++i >= num_all_presets ) {
-                    return ( PAPI_EINVAL );
-                }
-
-                /* Find the component to which the preset belongs and set the
-                 * preset index relative to the component's presets' index range. */
-                preset_index = i;
-                int compIdx = get_preset_cmp(&preset_index);
-                if( compIdx < 0 ) {
-                    return ( PAPI_ENOEVNT );
-                }
-
-                _papi_hwi_list = _papi_hwi_comp_presets[compIdx];
-
-            } while ( _papi_hwi_list[preset_index].symbol == NULL ||
-                      (modifier == PAPI_PRESET_ENUM_AVAIL && _papi_hwi_list[preset_index].count == 0) );
-
-            *EventCode = ( int ) ( i | PAPI_PRESET_MASK );
-            APIDBG("EXIT: *EventCode: %#x\n", *EventCode);
-            return ( PAPI_OK );
-        }
-
-        /* Set to the first component preset. */
-        if ( modifier == PAPI_PRESET_ENUM_FIRST_COMP ) {
-
-            preset_index = get_first_cmp_preset_idx();
-            if( preset_index < 0 ) {
-                return ( PAPI_ENOEVNT );
-            }
-
-            if ( _papi_hwd[first_comp_with_presets]->cmp_info.disabled == PAPI_EDELAY_INIT ) {
-                unsigned int junk;
-                _papi_hwd[first_comp_with_presets]->ntv_enum_events(&junk, PAPI_ENUM_FIRST);
-            }
-
-            *EventCode = ( int ) ( preset_index | PAPI_PRESET_MASK );
-            APIDBG("EXIT: *EventCode: %#x\n", *EventCode);
-            return ( PAPI_OK );
-        }
-
-        /* Iterate over CPU presets. */
-        if ( modifier == PAPI_PRESET_ENUM_CPU || modifier == PAPI_PRESET_ENUM_CPU_AVAIL ) {
-
-            while ( ++i < PAPI_MAX_PRESET_EVENTS ) {
-                if ( _papi_hwi_presets[i].symbol == NULL ) {
-                    APIDBG("EXIT: PAPI_ENOEVNT\n");
-                    return ( PAPI_ENOEVNT );    /* NULL pointer terminates list */
-                }
-                if ( modifier == PAPI_PRESET_ENUM_CPU_AVAIL
-                     && _papi_hwi_presets[i].count == 0 ) {
-                    continue;
-                }
-                *EventCode = ( int ) ( i | PAPI_PRESET_MASK );
-                APIDBG("EXIT: *EventCode: %#x\n", *EventCode);
-                return ( PAPI_OK );
-            }
-        }
-
-        papi_return( PAPI_EINVAL );
-    }
+	if ( IS_PRESET(i) ) {
+		if ( modifier == PAPI_ENUM_FIRST ) {
+			*EventCode = ( int ) PAPI_PRESET_MASK;
+			APIDBG("EXIT: *EventCode: %#x\n", *EventCode);
+			return ( PAPI_OK );
+		}
+		i &= PAPI_PRESET_AND_MASK;
+		while ( ++i < PAPI_MAX_PRESET_EVENTS ) {
+			if ( _papi_hwi_presets[i].symbol == NULL ) {
+				APIDBG("EXIT: PAPI_ENOEVNT\n");
+				return ( PAPI_ENOEVNT );	/* NULL pointer terminates list */
+			}
+			if ( modifier & PAPI_PRESET_ENUM_AVAIL ) {
+				if ( _papi_hwi_presets[i].count == 0 )
+					continue;
+			}
+			*EventCode = ( int ) ( i | PAPI_PRESET_MASK );
+			APIDBG("EXIT: *EventCode: %#x\n", *EventCode);
+			return ( PAPI_OK );
+		}
+		papi_return( PAPI_EINVAL );
+	}
 
 	if ( IS_NATIVE(i) ) {
 	    // save event code so components can get it with call to: _papi_hwi_get_papi_event_code()
@@ -2083,7 +1916,7 @@ PAPI_enum_cmp_event( int *EventCode, int modifier, int cidx )
 	int event_code;
 	char *evt_name;
 
-	if ( _papi_hwi_invalid_cmp(cidx) ) {
+	if ( _papi_hwi_invalid_cmp(cidx) || ( (IS_PRESET(i)) && cidx > 0 ) ) {
 		return PAPI_ENOCMP;
 	}
 
@@ -2092,50 +1925,28 @@ PAPI_enum_cmp_event( int *EventCode, int modifier, int cidx )
 	  return PAPI_ENOCMP;
 	}
 
-    if ( IS_PRESET(i) ) {
-
-        if ( _papi_hwd[cidx]->cmp_info.disabled == PAPI_EDELAY_INIT ) {
-            unsigned int junk;
-            _papi_hwd[cidx]->ntv_enum_events(&junk, PAPI_ENUM_FIRST);
-        }
-
-        int preset_index;
-        hwi_presets_t *_papi_hwi_list;
-
-        /* Set to the first preset. */
-        if ( modifier == PAPI_ENUM_FIRST ) {
-            *EventCode = ( int ) ( _papi_hwi_start_idx[cidx] | PAPI_PRESET_MASK );
-            APIDBG("EXIT: *EventCode: %#x\n", *EventCode);
-            return ( PAPI_OK );
-        }
-
-        i &= PAPI_PRESET_AND_MASK;
-
-        /* Iterate over all or all available presets. */
-        if ( modifier == PAPI_ENUM_EVENTS || modifier == PAPI_PRESET_ENUM_AVAIL ) {
-
-            /* NULL pointer used to terminate the list. However, now we have
-             * more presets that exist beyond the bounds of the original
-             * array, so skip over the NULL entries. */
-            do {
-                if ( ++i >= _papi_hwi_start_idx[cidx] + _papi_hwi_max_presets[cidx] ) {
-                    return ( PAPI_EINVAL );
-                }
-
-                /* Find the component to which the preset belongs. */
-                _papi_hwi_list = _papi_hwi_comp_presets[cidx];
-                preset_index = i - _papi_hwi_start_idx[cidx];
-
-            } while ( _papi_hwi_list[preset_index].symbol == NULL ||
-                      (modifier == PAPI_PRESET_ENUM_AVAIL && _papi_hwi_list[preset_index].count == 0) );
-
-            *EventCode = ( int ) ( i | PAPI_PRESET_MASK );
-            APIDBG("EXIT: *EventCode: %#x\n", *EventCode);
-            return ( PAPI_OK );
-        }
-
-        papi_return( PAPI_EINVAL );
-    }
+	if ( IS_PRESET(i) ) {
+		if ( modifier == PAPI_ENUM_FIRST ) {
+			*EventCode = ( int ) PAPI_PRESET_MASK;
+			APIDBG("EXIT: *EventCode: %#x\n", *EventCode);
+			return PAPI_OK;
+		}
+		i &= PAPI_PRESET_AND_MASK;
+		while ( ++i < PAPI_MAX_PRESET_EVENTS ) {
+			if ( _papi_hwi_presets[i].symbol == NULL ) {
+				APIDBG("EXIT: PAPI_ENOEVNT\n");
+				return ( PAPI_ENOEVNT );	/* NULL pointer terminates list */
+			}
+			if ( modifier & PAPI_PRESET_ENUM_AVAIL ) {
+				if ( _papi_hwi_presets[i].count == 0 )
+					continue;
+			}
+			*EventCode = ( int ) ( i | PAPI_PRESET_MASK );
+			APIDBG("EXIT: *EventCode: %#x\n", *EventCode);
+			return PAPI_OK;
+		}
+		papi_return( PAPI_EINVAL );
+	}
 
 	if ( IS_NATIVE(i) ) {
 	    // save event code so components can get it with call to: _papi_hwi_get_papi_event_code()
@@ -2572,8 +2383,8 @@ PAPI_remove_event( int EventSet, int EventCode )
  *
  *	@param EventSet
  *		An integer handle for a PAPI Event Set as created by PAPI_create_eventset.
- *	@param EventCode
- *		A defined event such as PAPI_TOT_INS.
+ *	@param EventCode 
+ *		A defined event such as PAPI_TOT_INS. 
  *
  *	@retval Positive-Integer
  *		The number of consecutive elements that succeeded before the error. 
@@ -4085,6 +3896,7 @@ PAPI_set_multiplex( int EventSet )
 	PAPI_option_t mpx;
 	EventSetInfo_t *ESI;
 	int cidx;
+	int ret;
 
 	/* Is the EventSet already in existence? */
 
@@ -4097,6 +3909,9 @@ PAPI_set_multiplex( int EventSet )
 	cidx = valid_ESI_component( ESI );
 	if ( cidx < 0 )
 		papi_return( cidx );
+
+	if ( ( ret = mpx_check( EventSet ) ) != PAPI_OK )
+		papi_return( ret );
 
 	memset( &mpx, 0x0, sizeof ( mpx ) );
 	mpx.multiplex.eventset = EventSet;
@@ -5176,6 +4991,12 @@ PAPI_num_events( int EventSet )
 	ESI = _papi_hwi_lookup_EventSet( EventSet );
 	if ( !ESI )
 		papi_return( PAPI_ENOEVST );
+
+#ifdef DEBUG
+	/* Not necessary */
+	if ( ESI->NumberOfEvents == 0 )
+		papi_return( PAPI_EINVAL );
+#endif
 
 	return ( ESI->NumberOfEvents );
 }
@@ -6696,7 +6517,7 @@ PAPI_remove_events( int EventSet, int *Events, int number )
  *
  * @par C Interface
  * \#include <papi.h> @n
- * int PAPI_list_events(int EventSet, int *Events, int *number);
+ * int PAPI_list_events(int *EventSet, int *Events, int *number );
 *
  *	@param[in] EventSet
  *		An integer handle for a PAPI event set as created by PAPI_create_eventset 

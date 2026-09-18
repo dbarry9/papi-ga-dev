@@ -121,7 +121,7 @@ htable_insert(void *handle, const char *key, void *in)
     return htable_errno;
   fn_fail:
     if (entry) {
-        free(entry);
+        papi_free(entry);
     }
     goto fn_exit;
 }
@@ -196,13 +196,13 @@ create_table(uint64_t size, struct hash_table **table)
 {
     int htable_errno = HTABLE_SUCCESS;
 
-    *table = calloc(1, sizeof(**table));
+    *table = papi_calloc(1, sizeof(**table));
     if (table == NULL) {
         htable_errno = HTABLE_ENOMEM;
         goto fn_exit;
     }
 
-    (*table)->buckets = calloc(size, sizeof(*(*table)->buckets));
+    (*table)->buckets = papi_calloc(size, sizeof(*(*table)->buckets));
     if ((*table)->buckets == NULL) {
         htable_errno = HTABLE_ENOMEM;
         goto fn_exit;
@@ -220,11 +220,11 @@ destroy_table(struct hash_table *table)
     int htable_errno = HTABLE_SUCCESS;
 
     if (table && table->buckets) {
-        free(table->buckets);
+        papi_free(table->buckets);
     }
 
     if (table) {
-        free(table);
+        papi_free(table);
     }
 
     return htable_errno;
@@ -258,7 +258,7 @@ move_table(struct hash_table *new_table, struct hash_table *old_table)
     old_table->size = new_table->size;
     old_table->buckets = new_table->buckets;
     new_table->buckets = NULL;
-    free(old_buckets);
+    papi_free(old_buckets);
 
     return htable_errno;
 }
@@ -322,7 +322,7 @@ create_table_entry(const char *key, void *val, struct hash_table_entry **entry)
 {
     int htable_errno = HTABLE_SUCCESS;
 
-    *entry = calloc(1, sizeof(**entry));
+    *entry = papi_calloc(1, sizeof(**entry));
     if (*entry == NULL) {
         return HTABLE_ENOMEM;
     }
@@ -337,8 +337,8 @@ int
 destroy_table_entry(struct hash_table_entry *entry)
 {
     int htable_errno = HTABLE_SUCCESS;
-    free(entry->key);
-    free(entry);
+    papi_free(entry->key);
+    papi_free(entry);
     return htable_errno;
 }
 

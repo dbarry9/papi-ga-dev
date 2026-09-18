@@ -1,6 +1,5 @@
 #ifndef _DARWIN_COMMON_H
 #define _DARWIN_COMMON_H
-#include <pthread.h>
 
 #define min(x, y) ({				\
 	typeof(x) _min1 = (x);			\
@@ -11,10 +10,7 @@
 static inline pid_t
 mygettid( void )
 {
-    pthread_t ptid = pthread_self();
-    pid_t thread_id = 0;
-    memcpy(&thread_id, &ptid, sizeof(pid_t) < sizeof(pthread_t) ? sizeof(pid_t) : sizeof(pthread_t));
-    return thread_id;
+  return pthread_self();
 }
 
 long long _darwin_get_real_cycles( void );

@@ -19,7 +19,7 @@ void papi_stop_and_print(long long theory, int EventSet, FILE *fp)
 }
 
 #if defined(ARM)
-half test_hp_scalar_VEC_24( uint64 iterations, int EventSet, FILE *fp ){
+half test_hp_scalar_VEC_24( uint64 iterations ){
     register half r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -40,17 +40,10 @@ half test_hp_scalar_VEC_24( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SH(0.15);
     rF = SET_VEC_SH(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             r0 = MUL_VEC_SH(r0,rC);
@@ -82,11 +75,6 @@ half test_hp_scalar_VEC_24( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(24, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -111,7 +99,7 @@ half test_hp_scalar_VEC_24( uint64 iterations, int EventSet, FILE *fp ){
     return out;
 }
 
-half test_hp_scalar_VEC_48( uint64 iterations, int EventSet, FILE *fp ){
+half test_hp_scalar_VEC_48( uint64 iterations ){
     register half r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -132,17 +120,10 @@ half test_hp_scalar_VEC_48( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SH(0.15);
     rF = SET_VEC_SH(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             r0 = MUL_VEC_SH(r0,rC);
@@ -200,11 +181,6 @@ half test_hp_scalar_VEC_48( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(48, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -229,7 +205,7 @@ half test_hp_scalar_VEC_48( uint64 iterations, int EventSet, FILE *fp ){
     return out;
 }
 
-half test_hp_scalar_VEC_96( uint64 iterations, int EventSet, FILE *fp ){
+half test_hp_scalar_VEC_96( uint64 iterations ){
     register half r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -250,17 +226,10 @@ half test_hp_scalar_VEC_96( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SH(0.15);
     rF = SET_VEC_SH(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             r0 = MUL_VEC_SH(r0,rC);
@@ -370,11 +339,6 @@ half test_hp_scalar_VEC_96( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(96, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -400,39 +364,21 @@ half test_hp_scalar_VEC_96( uint64 iterations, int EventSet, FILE *fp ){
 }
 
 #else
-float test_hp_scalar_VEC_24( uint64 iterations, int EventSet, FILE *fp ){
+float test_hp_scalar_VEC_24( uint64 iterations ){
 
     (void)iterations;
-    (void)EventSet;
-
-    if ( NULL != fp ) {
-      papi_stop_and_print_placeholder(24, fp);
-    }
-
     return 0.0;
 }
 
-float test_hp_scalar_VEC_48( uint64 iterations, int EventSet, FILE *fp ){
+float test_hp_scalar_VEC_48( uint64 iterations ){
 
     (void)iterations;
-    (void)EventSet;
-
-    if ( NULL != fp ) {
-      papi_stop_and_print_placeholder(48, fp);
-    }
-
     return 0.0;
 }
 
-float test_hp_scalar_VEC_96( uint64 iterations, int EventSet, FILE *fp ){
+float test_hp_scalar_VEC_96( uint64 iterations ){
 
     (void)iterations;
-    (void)EventSet;
-
-    if ( NULL != fp ) {
-      papi_stop_and_print_placeholder(96, fp);
-    }
-
     return 0.0;
 }
 #endif
@@ -440,7 +386,7 @@ float test_hp_scalar_VEC_96( uint64 iterations, int EventSet, FILE *fp ){
 /************************************/
 /* Loop unrolling:  24 instructions */
 /************************************/
-float test_sp_scalar_VEC_24( uint64 iterations, int EventSet, FILE *fp ){
+float test_sp_scalar_VEC_24( uint64 iterations ){
     register SP_SCALAR_TYPE r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -461,17 +407,10 @@ float test_sp_scalar_VEC_24( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SS(0.15);
     rF = SET_VEC_SS(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             r0 = MUL_VEC_SS(r0,rC);
@@ -503,11 +442,6 @@ float test_sp_scalar_VEC_24( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(24, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -535,7 +469,7 @@ float test_sp_scalar_VEC_24( uint64 iterations, int EventSet, FILE *fp ){
 /************************************/
 /* Loop unrolling:  48 instructions */
 /************************************/
-float test_sp_scalar_VEC_48( uint64 iterations, int EventSet, FILE *fp ){
+float test_sp_scalar_VEC_48( uint64 iterations ){
     register SP_SCALAR_TYPE r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -556,17 +490,10 @@ float test_sp_scalar_VEC_48( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SS(0.15);
     rF = SET_VEC_SS(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             r0 = MUL_VEC_SS(r0,rC);
@@ -624,11 +551,6 @@ float test_sp_scalar_VEC_48( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(48, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -656,7 +578,7 @@ float test_sp_scalar_VEC_48( uint64 iterations, int EventSet, FILE *fp ){
 /************************************/
 /* Loop unrolling:  96 instructions */
 /************************************/
-float test_sp_scalar_VEC_96( uint64 iterations, int EventSet, FILE *fp ){
+float test_sp_scalar_VEC_96( uint64 iterations ){
     register SP_SCALAR_TYPE r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -677,17 +599,10 @@ float test_sp_scalar_VEC_96( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SS(0.15);
     rF = SET_VEC_SS(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             r0 = MUL_VEC_SS(r0,rC);
@@ -797,11 +712,6 @@ float test_sp_scalar_VEC_96( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(96, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -829,7 +739,7 @@ float test_sp_scalar_VEC_96( uint64 iterations, int EventSet, FILE *fp ){
 /************************************/
 /* Loop unrolling:  24 instructions */
 /************************************/
-double test_dp_scalar_VEC_24( uint64 iterations, int EventSet, FILE *fp ){
+double test_dp_scalar_VEC_24( uint64 iterations ){
     register DP_SCALAR_TYPE r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -850,17 +760,10 @@ double test_dp_scalar_VEC_24( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SD(0.15);
     rF = SET_VEC_SD(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             r0 = MUL_VEC_SD(r0,rC);
@@ -892,11 +795,6 @@ double test_dp_scalar_VEC_24( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(24, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -924,7 +822,7 @@ double test_dp_scalar_VEC_24( uint64 iterations, int EventSet, FILE *fp ){
 /************************************/
 /* Loop unrolling:  48 instructions */
 /************************************/
-double test_dp_scalar_VEC_48( uint64 iterations, int EventSet, FILE *fp ){
+double test_dp_scalar_VEC_48( uint64 iterations ){
     register DP_SCALAR_TYPE r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -945,17 +843,10 @@ double test_dp_scalar_VEC_48( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SD(0.15);
     rF = SET_VEC_SD(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             r0 = MUL_VEC_SD(r0,rC);
@@ -1013,11 +904,6 @@ double test_dp_scalar_VEC_48( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(48, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -1045,7 +931,7 @@ double test_dp_scalar_VEC_48( uint64 iterations, int EventSet, FILE *fp ){
 /************************************/
 /* Loop unrolling:  96 instructions */
 /************************************/
-double test_dp_scalar_VEC_96( uint64 iterations, int EventSet, FILE *fp ){
+double test_dp_scalar_VEC_96( uint64 iterations ){
     register DP_SCALAR_TYPE r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -1066,17 +952,10 @@ double test_dp_scalar_VEC_96( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SD(0.15);
     rF = SET_VEC_SD(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             r0 = MUL_VEC_SD(r0,rC);
@@ -1186,11 +1065,6 @@ double test_dp_scalar_VEC_96( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(96, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -1216,7 +1090,7 @@ double test_dp_scalar_VEC_96( uint64 iterations, int EventSet, FILE *fp ){
 }
 
 #if defined(ARM)
-half test_hp_scalar_VEC_FMA_12( uint64 iterations, int EventSet, FILE *fp ){
+half test_hp_scalar_VEC_FMA_12( uint64 iterations ){
     register half r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -1237,17 +1111,10 @@ half test_hp_scalar_VEC_FMA_12( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SH(0.15);
     rF = SET_VEC_SH(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             FMA_VEC_SH(r0,r0,r7,r9);
@@ -1267,11 +1134,6 @@ half test_hp_scalar_VEC_FMA_12( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(12, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -1291,7 +1153,7 @@ half test_hp_scalar_VEC_FMA_12( uint64 iterations, int EventSet, FILE *fp ){
     return out;
 }
 
-half test_hp_scalar_VEC_FMA_24( uint64 iterations, int EventSet, FILE *fp ){
+half test_hp_scalar_VEC_FMA_24( uint64 iterations ){
     register half r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -1312,17 +1174,10 @@ half test_hp_scalar_VEC_FMA_24( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SH(0.15);
     rF = SET_VEC_SH(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             FMA_VEC_SH(r0,r0,r7,r9);
@@ -1356,11 +1211,6 @@ half test_hp_scalar_VEC_FMA_24( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(24, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -1380,7 +1230,7 @@ half test_hp_scalar_VEC_FMA_24( uint64 iterations, int EventSet, FILE *fp ){
     return out;
 }
 
-half test_hp_scalar_VEC_FMA_48( uint64 iterations, int EventSet, FILE *fp ){
+half test_hp_scalar_VEC_FMA_48( uint64 iterations ){
     register half r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -1401,17 +1251,10 @@ half test_hp_scalar_VEC_FMA_48( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SH(0.15);
     rF = SET_VEC_SH(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             FMA_VEC_SH(r0,r0,r7,r9);
@@ -1473,11 +1316,6 @@ half test_hp_scalar_VEC_FMA_48( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(48, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -1498,39 +1336,21 @@ half test_hp_scalar_VEC_FMA_48( uint64 iterations, int EventSet, FILE *fp ){
 }
 
 #else
-float test_hp_scalar_VEC_FMA_12( uint64 iterations, int EventSet, FILE *fp ){
+float test_hp_scalar_VEC_FMA_12( uint64 iterations ){
 
     (void)iterations;
-    (void)EventSet;
-
-    if ( NULL != fp ) {
-      papi_stop_and_print_placeholder(12, fp);
-    }
-
     return 0.0;
 }
 
-float test_hp_scalar_VEC_FMA_24( uint64 iterations, int EventSet, FILE *fp ){
+float test_hp_scalar_VEC_FMA_24( uint64 iterations ){
 
     (void)iterations;
-    (void)EventSet;
-
-    if ( NULL != fp ) {
-      papi_stop_and_print_placeholder(24, fp);
-    }
-
     return 0.0;
 }
 
-float test_hp_scalar_VEC_FMA_48( uint64 iterations, int EventSet, FILE *fp ){
+float test_hp_scalar_VEC_FMA_48( uint64 iterations ){
 
     (void)iterations;
-    (void)EventSet;
-
-    if ( NULL != fp ) {
-      papi_stop_and_print_placeholder(48, fp);
-    }
-
     return 0.0;
 }
 #endif
@@ -1538,8 +1358,7 @@ float test_hp_scalar_VEC_FMA_48( uint64 iterations, int EventSet, FILE *fp ){
 /************************************/
 /* Loop unrolling:  12 instructions */
 /************************************/
-#pragma GCC optimize ("O2")
-float test_sp_scalar_VEC_FMA_12( uint64 iterations, int EventSet, FILE *fp ){
+float test_sp_scalar_VEC_FMA_12( uint64 iterations ){
     register SP_SCALAR_TYPE r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -1560,17 +1379,10 @@ float test_sp_scalar_VEC_FMA_12( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SS(0.15);
     rF = SET_VEC_SS(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             FMA_VEC_SS(r0,r0,r7,r9);
@@ -1590,11 +1402,6 @@ float test_sp_scalar_VEC_FMA_12( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(12, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -1617,7 +1424,7 @@ float test_sp_scalar_VEC_FMA_12( uint64 iterations, int EventSet, FILE *fp ){
 /************************************/
 /* Loop unrolling:  24 instructions */
 /************************************/
-float test_sp_scalar_VEC_FMA_24( uint64 iterations, int EventSet, FILE *fp ){
+float test_sp_scalar_VEC_FMA_24( uint64 iterations ){
     register SP_SCALAR_TYPE r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -1638,17 +1445,10 @@ float test_sp_scalar_VEC_FMA_24( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SS(0.15);
     rF = SET_VEC_SS(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             FMA_VEC_SS(r0,r0,r7,r9);
@@ -1682,11 +1482,6 @@ float test_sp_scalar_VEC_FMA_24( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(24, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -1709,7 +1504,7 @@ float test_sp_scalar_VEC_FMA_24( uint64 iterations, int EventSet, FILE *fp ){
 /************************************/
 /* Loop unrolling:  48 instructions */
 /************************************/
-float test_sp_scalar_VEC_FMA_48( uint64 iterations, int EventSet, FILE *fp ){
+float test_sp_scalar_VEC_FMA_48( uint64 iterations ){
     register SP_SCALAR_TYPE r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -1730,17 +1525,10 @@ float test_sp_scalar_VEC_FMA_48( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SS(0.15);
     rF = SET_VEC_SS(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             FMA_VEC_SS(r0,r0,r7,r9);
@@ -1802,11 +1590,6 @@ float test_sp_scalar_VEC_FMA_48( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(48, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -1829,7 +1612,7 @@ float test_sp_scalar_VEC_FMA_48( uint64 iterations, int EventSet, FILE *fp ){
 /************************************/
 /* Loop unrolling:  12 instructions */
 /************************************/
-double test_dp_scalar_VEC_FMA_12( uint64 iterations, int EventSet, FILE *fp ){
+double test_dp_scalar_VEC_FMA_12( uint64 iterations ){
     register DP_SCALAR_TYPE r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -1850,17 +1633,10 @@ double test_dp_scalar_VEC_FMA_12( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SD(0.15);
     rF = SET_VEC_SD(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             FMA_VEC_SD(r0,r0,r7,r9);
@@ -1880,11 +1656,6 @@ double test_dp_scalar_VEC_FMA_12( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(12, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -1907,7 +1678,7 @@ double test_dp_scalar_VEC_FMA_12( uint64 iterations, int EventSet, FILE *fp ){
 /************************************/
 /* Loop unrolling:  24 instructions */
 /************************************/
-double test_dp_scalar_VEC_FMA_24( uint64 iterations, int EventSet, FILE *fp ){
+double test_dp_scalar_VEC_FMA_24( uint64 iterations ){
     register DP_SCALAR_TYPE r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -1928,17 +1699,10 @@ double test_dp_scalar_VEC_FMA_24( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SD(0.15);
     rF = SET_VEC_SD(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             FMA_VEC_SD(r0,r0,r7,r9);
@@ -1972,11 +1736,6 @@ double test_dp_scalar_VEC_FMA_24( uint64 iterations, int EventSet, FILE *fp ){
             i++;
         }
         c++;
-    }
-
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(24, EventSet, fp);
     }
 
     /* Use data so that compiler does not eliminate it when using -O2 */
@@ -1999,7 +1758,7 @@ double test_dp_scalar_VEC_FMA_24( uint64 iterations, int EventSet, FILE *fp ){
 /************************************/
 /* Loop unrolling:  48 instructions */
 /************************************/
-double test_dp_scalar_VEC_FMA_48( uint64 iterations, int EventSet, FILE *fp ){
+double test_dp_scalar_VEC_FMA_48( uint64 iterations ){
     register DP_SCALAR_TYPE r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,rA,rB,rC,rD,rE,rF;
 
     /* Generate starting data */
@@ -2020,17 +1779,10 @@ double test_dp_scalar_VEC_FMA_48( uint64 iterations, int EventSet, FILE *fp ){
     rE = SET_VEC_SD(0.15);
     rF = SET_VEC_SD(0.16);
 
-    /* Start PAPI counters */
-    if ( NULL != fp ) {
-      if ( PAPI_start( EventSet ) != PAPI_OK ) {
-        return -1;
-      }
-    }
-
     uint64 c = 0;
     while (c < iterations){
         size_t i = 0;
-        while (i < ITER){
+        while (i < 1000){
 
             /* The performance critical part */
             FMA_VEC_SD(r0,r0,r7,r9);
@@ -2094,11 +1846,6 @@ double test_dp_scalar_VEC_FMA_48( uint64 iterations, int EventSet, FILE *fp ){
         c++;
     }
 
-    /* Stop PAPI counters */
-    if ( NULL != fp ) {
-      papi_stop_and_print(48, EventSet, fp);
-    }
-
     /* Use data so that compiler does not eliminate it when using -O2 */
     r0 = ADD_VEC_SD(r0,r1);
     r2 = ADD_VEC_SD(r2,r3);
@@ -2115,4 +1862,3 @@ double test_dp_scalar_VEC_FMA_48( uint64 iterations, int EventSet, FILE *fp ){
 
     return out;
 }
-// End of pragma.

@@ -37,9 +37,9 @@ extern "C" {
 #endif
 
 const char *default_metrics[] = {
-				"intel_gpu:::ComputeBasic.GpuTime",
-				"intel_gpu:::ComputeBasic.GpuCoreClocks",
-				"intel_gpu:::ComputeBasic.AvgGpuCoreFrequencyMHz",
+				"ComputeBasic.GpuTime",
+				"ComputeBasic.GpuCoreClocks",
+				"ComputeBasic.AvgGpuCoreFrequencyMHz",
 };
 
 int	num_default_metrics = 3;

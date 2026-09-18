@@ -100,9 +100,6 @@ typedef struct {
 #define INTEL_X86_FILT_UMASK		0x10000	/* Event use filter which may be encoded in umask */
 #define INTEL_X86_FORCE_FILT0		0x20000	/* Event must set filter0 even if zero value */
 #define INTEL_X86_SPEC			0x40000 /* Event includes speculative execution */
-#define INTEL_X86_DEPRECATED		0x80000 /* Event is deprecated, ignore duplicate event code */
-#define INTEL_X86_CODE_DUP		0x100000 /* Event code duplication is handled */
-#define INTEL_X86_NO_MODS		0x200000 /* umask does not support modifier */
 
 typedef union pfm_intel_x86_reg {
 	unsigned long long val;			/* complete register value */

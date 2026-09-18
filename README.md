@@ -2,8 +2,6 @@
 
 **[Innovative Computing Laboratory (ICL)](http://www.icl.utk.edu/)**
 
-**[PAPI Wiki - Documentation](https://github.com/icl-utk-edu/papi/wiki/)**
-
 **University of Tennessee, Knoxville (UTK)**
 
 
@@ -39,27 +37,21 @@ consistent PAPI interface. Third-party tools and application developers will
 have to handle only a single hook to PAPI in order to access all hardware
 performance counters in a system, including the new software-defined events.
 
+***
+
+
+# Documentation
+
+* [PAPI Wiki](https://github.com/icl-utk-edu/papi/wiki/) is the main documentation for HOWTOs, Supported Architectures, PAPI Releases.
+* [PAPI Papers and Presentations](https://www.icl.utk.edu/view/biblio/project/papi?items_per_page=All)
+
 
 ***
 
-# Preferred Citation
-
-If PAPI is used in a project or publication, please cite the following paper:
-
-> Jagode H, Danalis A, Congiu G, Barry D, Castaldo A, Dongarra J. 
-> **Advancements of PAPI for the exascale generation.**
-> *The International Journal of High Performance Computing Applications.* 
-> 2024;39(2):251-268. 
-> [doi:10.1177/10943420241303884](https://journals.sagepub.com/doi/10.1177/10943420241303884)
-
-**This helps us track the impact of the project and supports ongoing development. Thank you!**
-
-
-***
 
 # Getting Help
 
-* Visit our FAQ at: <https://icl-utk-edu.github.io/papi/PAPI_FAQ.html> 
+* Visit our FAQ at: <http://icl.utk.edu/papi/faq/> 
   or read a snapshot of the FAQ in papi/PAPI_FAQ.html
 * For assistance with PAPI, email ptools-perfapi@icl.utk.edu.
 * You can also join the PAPI User Google group by going to
@@ -103,15 +95,13 @@ you will need to do the following:
   information about PAPI.
 * Visit the [ECP website](https://www.exascaleproject.org/) to find out more
   about the DOE Exascale Computing Initiative.
-* Visit the [PAPI Papers and Presentations](https://www.icl.utk.edu/view/biblio/project/papi?items_per_page=All) to find out more about PAPI papers and presentations.
 
 ***
 
 
 # License
 
-    Copyright (c) 2025, Innovative Computing Laboratory, 
-    University of Tennessee Knoxville
+    Copyright (c) 2019, University of Tennessee
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -135,5 +125,3 @@ you will need to do the following:
     ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-    This open source software license conforms to the BSD License template.

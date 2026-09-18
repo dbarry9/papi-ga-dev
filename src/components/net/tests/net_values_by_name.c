@@ -3,9 +3,12 @@
 /****************************/
 
 /**
+ * @author  Jose Pedro Oliveira
+ *
+ * test case for the linux-net component
+ *
  * @brief
- *   For each net event that is available add it to an EventSet by its name 
- *   e.g. net:::lo:rx:byte. Then run through a start - stop workflow.
+ *   Prints the values of several net events specified by names
  */
 
 #include <stdio.h>
@@ -15,80 +18,67 @@
 #include "papi.h"
 #include "papi_test.h"
 
+/*
+#define IFNAME     "eth0"
+*/
+#define IFNAME     "lo"
 #define PINGADDR   "127.0.0.1"
+
+#define NUM_EVENTS 4
 
 int main (int argc, char **argv)
 {
+    int i, retval;
+    int EventSet = PAPI_NULL;
+    char *event_name[NUM_EVENTS] = {
+        IFNAME ":rx:bytes",
+        IFNAME ":rx:packets",
+        IFNAME ":tx:bytes",
+        IFNAME ":tx:packets",
+    };
+    int event_code[NUM_EVENTS] = { 0, 0, 0, 0};
+    long long event_value[NUM_EVENTS];
+    int total_events=0;
+
     /* Set TESTS_QUIET variable */
     tests_quiet( argc, argv );
 
     /* PAPI Initialization */
-    int retval = PAPI_library_init( PAPI_VER_CURRENT );
+    retval = PAPI_library_init( PAPI_VER_CURRENT );
     if ( retval != PAPI_VER_CURRENT ) {
-        test_fail(__FILE__, __LINE__, "PAPI_library_init", retval);
+        test_fail(__FILE__, __LINE__,"PAPI_library_init failed\n",retval);
     }
 
-    const char *componentName = "net";
-    int cmpIdx = PAPI_get_component_index(componentName);
-    if (cmpIdx < 0) {
-        test_fail(__FILE__, __LINE__,"PAPI_get_component_index", cmpIdx);
+    if (!TESTS_QUIET) {
+        printf("Net events by name\n");
     }
 
-    int eventCode = 0 | PAPI_NATIVE_MASK;
-    int modifier = PAPI_ENUM_FIRST;
-    retval = PAPI_enum_cmp_event(&eventCode, modifier, cmpIdx);
+    /* Map names to codes */
+    for ( i=0; i<NUM_EVENTS; i++ ) {
+        retval = PAPI_event_name_to_code( event_name[i], &event_code[i]);
+        if ( retval != PAPI_OK ) {
+            test_fail( __FILE__, __LINE__, "PAPI_event_name_to_code", retval );
+        }
+
+        total_events++;
+    }
+
+    /* Create and populate the EventSet */
+    EventSet = PAPI_NULL;
+
+    retval = PAPI_create_eventset( &EventSet );
     if (retval != PAPI_OK) {
-        test_fail(__FILE__, __LINE__, "PAPI_enum_cmp_event", retval);
+        test_fail(__FILE__, __LINE__, "PAPI_create_eventset()", retval);
     }
 
-    int EventSet = PAPI_NULL;
-    retval = PAPI_create_eventset(&EventSet);
+    retval = PAPI_add_events( EventSet, event_code, NUM_EVENTS);
     if (retval != PAPI_OK) {
-        test_fail(__FILE__, __LINE__, "PAPI_create_eventset", retval);
-    }  
-
-    int numEventsAdded = 0;
-    char **eventNames = NULL;
-    modifier = PAPI_ENUM_EVENTS;
-    do {
-        // Get an events info to use the symbol member variable
-        PAPI_event_info_t evtInfo;
-        retval = PAPI_get_event_info(eventCode, &evtInfo);
-        if (retval != PAPI_OK) {
-            test_fail(__FILE__, __LINE__, "PAPI_get_event_info", retval);
-        }
-
-        retval = PAPI_add_named_event(EventSet, evtInfo.symbol);
-        if (retval != PAPI_OK) {
-            test_fail(__FILE__, __LINE__, "PAPI_add_named_event", retval);
-        }
-
-        // Allocate necessary memory to store successfully added events
-        eventNames = (char **) realloc(eventNames, (numEventsAdded + 1) * sizeof(char *));
-        if (eventNames == NULL) {
-            fprintf(stderr, "Failed to allocate memory for the array eventNames.\n");
-            exit(1);
-        }
-        eventNames[numEventsAdded] = (char *) malloc(PAPI_MAX_STR_LEN * sizeof(char));
-        if (eventNames[numEventsAdded] == NULL) {
-            fprintf(stderr, "Failed to allocate memory for index %d of array eventNames.\n", numEventsAdded);
-            exit(1);
-        }
-
-        // Store successfully added events to be output after start - stop workflow
-        int strLen = snprintf(eventNames[numEventsAdded], PAPI_MAX_STR_LEN, "%s", evtInfo.symbol);
-        if (strLen < 0 || strLen >= PAPI_MAX_STR_LEN) {
-            fprintf(stderr, "Failed to fully write the event %s to index %d.\n", evtInfo.symbol, numEventsAdded);
-            exit(1);
-        }
-
-        // Incremenent total number of events successfully added
-        numEventsAdded++;
-    } while(PAPI_enum_cmp_event(&eventCode, modifier, cmpIdx) == PAPI_OK);
+        test_fail(__FILE__, __LINE__, "PAPI_add_events()", retval);
+    }
 
     retval = PAPI_start( EventSet );
     if (retval != PAPI_OK) {
-        test_fail(__FILE__, __LINE__, "PAPI_start", retval);
+        test_fail(__FILE__, __LINE__, "PAPI_start()", retval);
     }
 
     /* generate some traffic
@@ -96,45 +86,30 @@ int main (int argc, char **argv)
      * to guarantee that the network counters are updated */
     retval = system("ping -c 4 " PINGADDR " > /dev/null");
     if (retval < 0) {
-        fprintf(stderr, "Unable to start ping.\n");
-        exit(1);
+		test_fail(__FILE__, __LINE__, "Unable to start ping", retval);
 	}
 
-    long long *counterValues = (long long *) malloc(numEventsAdded * sizeof(long long));
-    if (counterValues == NULL) {
-        fprintf(stderr, "Failed to allocate memory for array counterValues.\n");
-        exit(1);
-    }
-
-    retval = PAPI_stop( EventSet, counterValues );
+    retval = PAPI_stop( EventSet, event_value );
     if (retval != PAPI_OK) {
-        test_fail(__FILE__, __LINE__, "PAPI_stop", retval);
+        test_fail(__FILE__, __LINE__, "PAPI_start()", retval);
     }
 
-    int i;
     if (!TESTS_QUIET) {
-        printf("Net events by name:\n");
-        for (i = 0; i < numEventsAdded; i++) {
-            printf("%s has a counter value of %d\n", eventNames[i], counterValues[i]);
+        for ( i=0; i<NUM_EVENTS; i++ ) {
+            printf("%#x %-24s = %lld\n",
+                event_code[i], event_name[i], event_value[i]);
         }
     }
 
     retval = PAPI_cleanup_eventset( EventSet );
     if (retval != PAPI_OK) {
-        test_fail(__FILE__, __LINE__, "PAPI_cleanup_eventset", retval);
+        test_fail(__FILE__, __LINE__, "PAPI_cleanup_eventset()", retval);
     }
 
     retval = PAPI_destroy_eventset( &EventSet );
     if (retval != PAPI_OK) {
-        test_fail(__FILE__, __LINE__, "PAPI_destroy_eventset", retval);
+        test_fail(__FILE__, __LINE__, "PAPI_destroy_eventset()", retval);
     }
-
-    // Free allocated memory
-    for (i = 0; i < numEventsAdded; i++) {
-        free(eventNames[i]);
-    }
-    free(eventNames);
-    free(counterValues);
 
     test_pass( __FILE__ );
 

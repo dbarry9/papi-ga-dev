@@ -32,13 +32,7 @@
 /* Log cuda driver and runtime calls */
 #define LOGCUDACALL(format, args...) SUBDBG("CUDACALL: " format, ## args);
 
-/* Log cupti calls */
+/* Log cupti and perfworks calls */
 #define LOGCUPTICALL(format, args...) SUBDBG("CUPTICALL: " format, ## args);
-
-/* Log perfworks calls */
-#define LOGPERFWORKSCALL(format, args...) SUBDBG("PERFWORKSCALL: " format, ## args);
-
-/* Log nvml calls */
-#define LOGNVMLCALL(format, args...) SUBDBG("NVMLCALL: " format, ## args);
 
 #endif  /* __LCUDA_DEBUG_H__ */
